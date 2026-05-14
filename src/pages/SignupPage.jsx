@@ -71,7 +71,7 @@ export const SignupPage = ({ initialInviteCode, onSwitchToLogin, onSignupSuccess
             💕
           </motion.div>
           <h1 className="text-3xl font-bold text-bae-navy">Join Bae Watch</h1>
-          <p className="text-bae-navy/70">Start your relationship journey</p>
+          <p className="text-bae-navy/70">Create your account, then invite your partner with a shareable phone link.</p>
         </div>
 
         <Card variant="peach">

@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import FloatingHearts from '../components/common/FloatingHearts';
 import baewatch2 from '../assets/baewatch2.jpeg';
-import baewatchLogo from '../assets/baewatchlogo.png';
 
 export const SplashScreen = ({ onComplete }) => {
   const [progress, setProgress] = useState(0);
   const [logoError, setLogoError] = useState(false);
+  const logoSrc = '/bae-watch-logo.svg';
 
 
   useEffect(() => {
@@ -14,12 +14,12 @@ export const SplashScreen = ({ onComplete }) => {
       setProgress((prev) => {
         if (prev >= 100) {
           clearInterval(timer);
-          setTimeout(() => onComplete?.(), 500);
+          setTimeout(() => onComplete?.(), 900);
           return 100;
         }
-        return Math.min(100, prev + Math.random() * 20 + 10);
+        return Math.min(100, prev + Math.random() * 10 + 4);
       });
-    }, 300);
+    }, 400);
 
     return () => clearInterval(timer);
   }, [onComplete]);
@@ -39,7 +39,7 @@ export const SplashScreen = ({ onComplete }) => {
       <div className="absolute inset-0 bg-black/25" />
       <FloatingHearts count={8} className="absolute inset-0 opacity-30" />
 
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-between px-6 py-8">
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-10 px-6 py-12">
         <header className="w-full max-w-[90vw] text-center">
           {logoError ? (
             <div className="mx-auto mb-4 rounded-[24px] bg-bae-peach/90 px-6 py-4 text-4xl font-black uppercase tracking-[0.22em] text-bae-navy shadow-xl w-[80vw] max-w-[600px]">
@@ -47,7 +47,7 @@ export const SplashScreen = ({ onComplete }) => {
             </div>
           ) : (
             <img
-              src={baewatchLogo}
+              src={logoSrc}
               alt="Bae Watch logo"
               onError={() => setLogoError(true)}
               className="mx-auto mb-4 w-[80vw] max-w-[600px] object-contain"

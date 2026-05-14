@@ -18,22 +18,20 @@ import './App.css';
 
 function AppContent() {
   const { currentUser } = useAuth();
-  const { updateProfile } = useApp();
+  const { updateProfile, relationshipData, isLoaded } = useApp();
   const [currentPage, setCurrentPage] = useState('splash');
   const [authMode, setAuthMode] = useState('login'); // 'login' or 'signup'
   const [appReady, setAppReady] = useState(false);
   const [hasOnboarded, setHasOnboarded] = useState(false);
   const [inviteCodeFromUrl, setInviteCodeFromUrl] = useState('');
 
-  // Check if user has onboarded before
   useEffect(() => {
     if (currentUser) {
-      const hasOnboarded = localStorage.getItem(`baewatch_onboarded_${currentUser.uid}`);
-      if (hasOnboarded) {
-        setHasOnboarded(true);
-      }
+      setHasOnboarded(isLoaded && Boolean(relationshipData.profile?.yourName));
+    } else {
+      setHasOnboarded(false);
     }
-  }, [currentUser]);
+  }, [currentUser, isLoaded, relationshipData]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -53,11 +51,7 @@ function AppContent() {
 
   const handleSplashComplete = () => {
     if (currentUser) {
-      if (hasOnboarded) {
-        setCurrentPage('home');
-      } else {
-        setCurrentPage('onboarding');
-      }
+      setCurrentPage(hasOnboarded ? 'home' : 'partner-invite');
     } else {
       setCurrentPage('auth');
     }
@@ -66,13 +60,6 @@ function AppContent() {
 
   const handleOnboardingComplete = (data) => {
     updateProfile(data);
-    if (currentUser) {
-      localStorage.setItem(`baewatch_onboarded_${currentUser.uid}`, 'true');
-      localStorage.setItem(`baewatch_data_${currentUser.uid}`, JSON.stringify(data));
-    } else {
-      localStorage.setItem('baewatch_onboarded', 'true');
-      localStorage.setItem('baewatch_data', JSON.stringify(data));
-    }
     setHasOnboarded(true);
     setCurrentPage('home');
   };
@@ -89,7 +76,7 @@ function AppContent() {
     setCurrentPage(hasOnboarded ? 'home' : 'onboarding');
   };
 
-  if (!appReady) {
+  if (!appReady || (currentUser && !isLoaded)) {
     return (
       <AnimatePresence mode="wait">
         <SplashScreen key="splash" onComplete={handleSplashComplete} />

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
-import { Heart, Mail, Copy, Check } from 'lucide-react';
+import { Copy, Check } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, addDoc, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 
@@ -19,6 +19,7 @@ export const PartnerInvitePage = ({ initialInviteCode, onComplete }) => {
   useEffect(() => {
     if (initialInviteCode) {
       setInviteCode(initialInviteCode);
+      setInviteLink(`${window.location.origin}?invite=${initialInviteCode}`);
     }
   }, [initialInviteCode]);
 
@@ -114,16 +115,16 @@ export const PartnerInvitePage = ({ initialInviteCode, onComplete }) => {
           >
             💕
           </motion.div>
-          <h1 className="text-3xl font-bold text-bae-navy">Connect with Your Partner</h1>
-          <p className="text-bae-navy/70">Share your relationship journey together</p>
+          <h1 className="text-3xl font-bold text-bae-navy">Invite Your Partner</h1>
+          <p className="text-bae-navy/70">Share this link so your partner can install the app and join your journey together.</p>
         </div>
 
         <Card variant="peach">
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold text-bae-navy mb-2">Invite Your Partner</h3>
+              <h3 className="text-lg font-semibold text-bae-navy mb-2">Share a phone install link</h3>
               <p className="text-sm text-bae-navy/70 mb-4">
-                Generate a code to share with your partner so they can join your relationship.
+                Generate a code and a mobile-friendly link your partner can open on their phone.
               </p>
 
               {!inviteCode ? (
@@ -133,15 +134,15 @@ export const PartnerInvitePage = ({ initialInviteCode, onComplete }) => {
                   className="w-full"
                   disabled={loading}
                 >
-                  {loading ? 'Generating...' : 'Generate Invite Code'}
+                  {loading ? 'Generating...' : 'Generate Invite Link'}
                 </Button>
               ) : (
                 <div className="space-y-3">
                   <div className="bg-white rounded-xl p-4 text-center">
-                    <p className="text-sm text-bae-navy/60 mb-2">Your invite code:</p>
+                    <p className="text-sm text-bae-navy/60 mb-2">Invite code</p>
                     <p className="text-2xl font-bold text-bae-coral">{inviteCode}</p>
                     {inviteLink && (
-                      <p className="text-xs text-bae-navy/60 mt-2 break-all">Share link: {inviteLink}</p>
+                      <p className="text-xs text-bae-navy/60 mt-2 break-all">{inviteLink}</p>
                     )}
                   </div>
                   <Button
@@ -150,16 +151,16 @@ export const PartnerInvitePage = ({ initialInviteCode, onComplete }) => {
                     className="w-full"
                   >
                     {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
-                    {copied ? 'Copied!' : 'Copy Invite'}
+                    {copied ? 'Copied!' : 'Copy Link'}
                   </Button>
                 </div>
               )}
             </div>
 
             <div className="border-t border-bae-peach/30 pt-6">
-              <h3 className="text-lg font-semibold text-bae-navy mb-2">Join with Code</h3>
+              <h3 className="text-lg font-semibold text-bae-navy mb-2">Already invited?</h3>
               <p className="text-sm text-bae-navy/70 mb-4">
-                If your partner invited you, enter their code here.
+                If your partner already sent you a code, enter it here to connect.
               </p>
 
               <div className="space-y-3">
@@ -191,10 +192,7 @@ export const PartnerInvitePage = ({ initialInviteCode, onComplete }) => {
         </Card>
 
         <div className="text-center">
-          <Button
-            onClick={() => onComplete?.()}
-            variant="ghost"
-          >
+          <Button onClick={() => onComplete?.()} variant="ghost">
             Skip for now
           </Button>
         </div>

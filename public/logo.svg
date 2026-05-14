@@ -1,32 +1,43 @@
-<svg width="800" height="260" viewBox="0 0 800 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" width="1200" height="520">
   <defs>
-    <linearGradient id="logoGradient" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#FF856D" />
-      <stop offset="100%" stop-color="#FFBA8D" />
+    <linearGradient id="coralGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF8462" />
+      <stop offset="100%" stop-color="#FFB67E" />
     </linearGradient>
-    <linearGradient id="ringGradient" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#FFB68F" />
-      <stop offset="100%" stop-color="#FF5F57" />
+    <linearGradient id="darkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#101E43" />
+      <stop offset="100%" stop-color="#122A53" />
     </linearGradient>
-    <linearGradient id="waveGradient" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#FF8D7A" />
-      <stop offset="100%" stop-color="#4C8FE2" />
+    <linearGradient id="ringGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE4CE" />
+      <stop offset="100%" stop-color="#FFD2B0" />
     </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="22" stdDeviation="20" flood-color="#000000" flood-opacity="0.18" />
+    </filter>
   </defs>
-  <rect width="800" height="260" rx="40" fill="#FFF7EF" />
-  <g transform="translate(70 20)">
-    <circle cx="90" cy="90" r="70" fill="url(#ringGradient)" />
-    <circle cx="90" cy="90" r="54" fill="#FFF7EF" />
-    <path d="M30 100C30 79.91 40.91 69 61 69C81.09 69 92 79.91 92 100C92 120.09 81.09 131 61 131C40.91 131 30 120.09 30 100Z" fill="#FF856D" />
-    <path d="M10 70L36 54L36 46L10 62V70Z" fill="#FFBA8D" />
-    <path d="M170 70L144 54L144 46L170 62V70Z" fill="#FFBA8D" />
-    <path d="M40 150L16 178L24 189L54 156L40 150Z" fill="#FFBA8D" />
-    <path d="M140 150L164 178L156 189L126 156L140 150Z" fill="#FFBA8D" />
-    <path d="M44 90C44 74.536 56.536 62 72 62C87.464 62 100 74.536 100 90C100 105.464 87.464 118 72 118C56.536 118 44 105.464 44 90Z" fill="#FFF7EF" />
+
+  <rect x="20" y="20" width="1160" height="480" rx="48" fill="#FFF6EE" />
+
+  <g filter="url(#shadow)">
+    <circle cx="950" cy="140" r="114" fill="url(#ringGlow)" />
+    <circle cx="950" cy="140" r="90" fill="#FFFFFF" />
+    <path d="M950 68c40 0 72 32 72 72s-32 72-72 72-72-32-72-72 32-72 72-72Z" fill="#FF9B79" />
+    <path d="M922 104c-8 4-20 18-20 36 0 22 18 44 46 66 6 4 18 12 24 12s18-8 24-12c28-22 46-44 46-66 0-18-12-32-20-36-9-4-20 2-26 10-6-8-17-14-26-10-8 4-20 18-20 36 0 22 18 44 46 66 6 4 18 12 24 12s18-8 24-12c28-22 46-44 46-66 0-18-12-32-20-36-9-4-20 2-26 10-6-8-17-14-26-10-8 4-20 18-20 36 0 22 18 44 46 66 6 4 18 12 24 12s18-8 24-12c28-22 46-44 46-66 0-18-12-32-20-36-9-4-20 2-26 10-6-8-17-14-26-10-8 4-20 18-20 36" fill="#FFFFFF" opacity="0.72" />
+    <circle cx="925" cy="140" r="16" fill="#FFFFFF" />
+    <circle cx="975" cy="108" r="14" fill="#FFFFFF" />
   </g>
-  <text x="240" y="120" font-family="Inter, sans-serif" font-size="80" font-weight="800" letter-spacing="-2" fill="url(#logoGradient)">Bae</text>
-  <text x="240" y="200" font-family="Inter, sans-serif" font-size="80" font-weight="800" letter-spacing="-2" fill="#1D2A46">Watch</text>
-  <text x="240" y="240" font-family="Inter, sans-serif" font-size="26" fill="#5B4B51">Love better. Notice more.</text>
-  <path d="M555 150C520 120 540 90 560 106C580 122 600 160 630 130" stroke="url(#waveGradient)" stroke-width="15" stroke-linecap="round" />
-  <path d="M525 170C490 150 520 120 545 135C567 148 590 178 620 155" stroke="#FF9B7E" stroke-width="12" stroke-linecap="round" />
+
+  <path d="M160 235c28-40 65-80 120-78 50 2 90 58 130 88 42 32 86 50 148 42 84-12 160-86 228-118 32-14 88-24 132-6 30 12 40 44 36 61-6 25-28 48-60 54-24 4-40-4-62-16-20-10-40-16-64-8-18 6-40 18-54 34-30 34-74 62-118 54-46-8-88-46-130-74-34-22-70-34-108-34-42 0-86 16-120 42-8 6-16 14-24 20-18 18-34 30-64 28-24-2-40-20-50-44-8-24-14-64 12-112Z" fill="url(#coralGradient)" stroke="#FFFFFF" stroke-width="18" stroke-linejoin="round" />
+
+  <text x="150" y="210" font-family="Segoe Script, Brush Script MT, Georgia, cursive" font-size="190" fill="url(#coralGradient)" stroke="#FFFFFF" stroke-width="14" paint-order="stroke" letter-spacing="-6">Bae</text>
+  <text x="145" y="320" font-family="Inter, Arial, sans-serif" font-size="148" fill="url(#darkGradient)" font-weight="900" letter-spacing="-4">Watch</text>
+
+  <text x="148" y="390" font-family="Inter, Arial, sans-serif" font-size="36" font-weight="700" letter-spacing="8" fill="#FF9B7B" text-transform="uppercase">LOVE BETTER. NOTICE MORE.</text>
+
+  <g opacity="0.95">
+    <path d="M880 60l14-28 14 28 28 14-28 14-14 28-14-28-28-14 28-14Z" fill="#FFE2C9" />
+    <path d="M1010 34l10-20 10 20 20 10-20 10-10 20-10-20-20-10 20-10Z" fill="#FFE2C9" />
+    <path d="M820 184l6-12 6 12 12 6-12 6-6 12-6-12-12-6 12-6Z" fill="#FFE2C9" />
+  </g>
 </svg>
