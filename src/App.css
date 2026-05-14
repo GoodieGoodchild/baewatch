@@ -1,0 +1,20 @@
+/* App.css - Tailwind handles most styles */
+
+/* Smooth page transitions */
+#root {
+  transition: opacity 0.3s ease;
+}
+
+/* Prevent layout shift from scrollbar */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* Mobile-optimized viewport */
+@media (max-width: 430px) {
+  body {
+    overflow-x: hidden;
+  }
+}
+
+/* Safe area support for notched devices */

@@ -1,0 +1,32 @@
+<svg width="800" height="260" viewBox="0 0 800 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="logoGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FF856D" />
+      <stop offset="100%" stop-color="#FFBA8D" />
+    </linearGradient>
+    <linearGradient id="ringGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFB68F" />
+      <stop offset="100%" stop-color="#FF5F57" />
+    </linearGradient>
+    <linearGradient id="waveGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FF8D7A" />
+      <stop offset="100%" stop-color="#4C8FE2" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="260" rx="40" fill="#FFF7EF" />
+  <g transform="translate(70 20)">
+    <circle cx="90" cy="90" r="70" fill="url(#ringGradient)" />
+    <circle cx="90" cy="90" r="54" fill="#FFF7EF" />
+    <path d="M30 100C30 79.91 40.91 69 61 69C81.09 69 92 79.91 92 100C92 120.09 81.09 131 61 131C40.91 131 30 120.09 30 100Z" fill="#FF856D" />
+    <path d="M10 70L36 54L36 46L10 62V70Z" fill="#FFBA8D" />
+    <path d="M170 70L144 54L144 46L170 62V70Z" fill="#FFBA8D" />
+    <path d="M40 150L16 178L24 189L54 156L40 150Z" fill="#FFBA8D" />
+    <path d="M140 150L164 178L156 189L126 156L140 150Z" fill="#FFBA8D" />
+    <path d="M44 90C44 74.536 56.536 62 72 62C87.464 62 100 74.536 100 90C100 105.464 87.464 118 72 118C56.536 118 44 105.464 44 90Z" fill="#FFF7EF" />
+  </g>
+  <text x="240" y="120" font-family="Inter, sans-serif" font-size="80" font-weight="800" letter-spacing="-2" fill="url(#logoGradient)">Bae</text>
+  <text x="240" y="200" font-family="Inter, sans-serif" font-size="80" font-weight="800" letter-spacing="-2" fill="#1D2A46">Watch</text>
+  <text x="240" y="240" font-family="Inter, sans-serif" font-size="26" fill="#5B4B51">Love better. Notice more.</text>
+  <path d="M555 150C520 120 540 90 560 106C580 122 600 160 630 130" stroke="url(#waveGradient)" stroke-width="15" stroke-linecap="round" />
+  <path d="M525 170C490 150 520 120 545 135C567 148 590 178 620 155" stroke="#FF9B7E" stroke-width="12" stroke-linecap="round" />
+</svg>
