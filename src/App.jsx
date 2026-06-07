@@ -12,6 +12,9 @@ import MemoriesPage from './pages/MemoriesPage';
 import GamesPage from './pages/GamesPage';
 import WeatherDetailsPage from './pages/WeatherDetailsPage';
 import ProfileEditPage from './pages/ProfileEditPage';
+import TimelinePage from './pages/TimelinePage';
+import GrowthPage from './pages/GrowthPage';
+import DatePlannerPage from './pages/DatePlannerPage';
 import { AppProvider, useApp } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import './App.css';
@@ -119,6 +122,12 @@ function AppContent() {
         <WeatherDetailsPage key="weather" onNavigate={handleNavigate} />
       ) : currentPage === 'profile-edit' ? (
         <ProfileEditPage key="profile-edit" />
+      ) : currentPage === 'timeline' ? (
+        <TimelinePage key="timeline" onNavigate={handleNavigate} />
+      ) : currentPage === 'growth' ? (
+        <GrowthPage key="growth" onNavigate={handleNavigate} />
+      ) : currentPage === 'date-planner' ? (
+        <DatePlannerPage key="date-planner" onNavigate={handleNavigate} />
       ) : null}
     </AnimatePresence>
   );

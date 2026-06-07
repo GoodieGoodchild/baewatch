@@ -7,7 +7,7 @@ import Card from '../components/common/Card';
 import RelationshipWeatherWidget from '../components/widgets/RelationshipWeatherWidget';
 import ConnectionLevelWidget from '../components/widgets/ConnectionLevelWidget';
 import InsightCard from '../components/cards/InsightCard';
-import { Heart, Zap, TrendingUp, Edit } from 'lucide-react';
+import { Heart, Zap, TrendingUp, Edit, BookOpen, Sprout, Moon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export const HomePage = ({ onNavigate }) => {
@@ -16,6 +16,11 @@ export const HomePage = ({ onNavigate }) => {
   const profile = relationshipData.profile || {};
   const partnerName = profile.partnerName || 'your person';
   const cupFullness = profile.cupFullness ?? 72;
+  const timeline = relationshipData.timeline || [];
+  const growthGoals = relationshipData.growthGoals || [];
+  const plannedDates = relationshipData.plannedDates || [];
+  const activeGoals = growthGoals.filter((g) => !g.completed);
+  const activePlannedDate = plannedDates.find((d) => !d.done);
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -175,6 +180,80 @@ export const HomePage = ({ onNavigate }) => {
               })}
             </div>
           </Card>
+        </motion.div>
+        {/* Our Story Teaser */}
+        <motion.div variants={itemVariants}>
+          <button
+            onClick={() => onNavigate?.('timeline')}
+            className="w-full text-left"
+          >
+            <Card variant="peach" className="hover:shadow-lg transition-shadow cursor-pointer">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <BookOpen className="w-5 h-5 text-bae-coral" />
+                  <div>
+                    <h3 className="font-semibold text-bae-navy text-sm">Our Story 💕</h3>
+                    <p className="text-xs text-bae-navy/60">
+                      {timeline.length === 0
+                        ? 'Add your first milestone →'
+                        : `${timeline.length} milestone${timeline.length !== 1 ? 's' : ''} · ${timeline[0]?.emoji} ${timeline[0]?.title}`}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-bae-coral text-xs font-medium">Add a moment →</span>
+              </div>
+            </Card>
+          </button>
+        </motion.div>
+
+        {/* Growth Goals Teaser */}
+        <motion.div variants={itemVariants}>
+          <button
+            onClick={() => onNavigate?.('growth')}
+            className="w-full text-left"
+          >
+            <Card variant="light" className="hover:shadow-lg transition-shadow cursor-pointer">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Sprout className="w-5 h-5 text-green-500" />
+                  <div>
+                    <h3 className="font-semibold text-bae-navy text-sm">🌱 Your Growth</h3>
+                    <p className="text-xs text-bae-navy/60">
+                      {activeGoals.length === 0
+                        ? 'Set your first goal →'
+                        : `${activeGoals.length} active goal${activeGoals.length !== 1 ? 's' : ''} · ${activeGoals[0]?.title}`}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-bae-navy/50 text-xs font-medium">View all →</span>
+              </div>
+            </Card>
+          </button>
+        </motion.div>
+
+        {/* Date Night Teaser */}
+        <motion.div variants={itemVariants}>
+          <button
+            onClick={() => onNavigate?.('date-planner')}
+            className="w-full text-left"
+          >
+            <Card variant="gradient" className="hover:shadow-lg transition-shadow cursor-pointer">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Moon className="w-5 h-5 text-bae-navy" />
+                  <div>
+                    <h3 className="font-semibold text-bae-navy text-sm">🌙 Date Night</h3>
+                    <p className="text-xs text-bae-navy/60">
+                      {activePlannedDate
+                        ? `You have a date planned 💕 ${activePlannedDate.emoji} ${activePlannedDate.title}`
+                        : 'Plan your next date night →'}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-bae-navy/50 text-xs font-medium">Plan →</span>
+              </div>
+            </Card>
+          </button>
         </motion.div>
       </div>
 
