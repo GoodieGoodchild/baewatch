@@ -4,28 +4,60 @@ import SafetyHeader from '../components/common/SafetyHeader';
 import BottomNavigation from '../components/common/BottomNavigation';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
+import { useApp } from '../context/AppContext';
+
+const emotionalStates = [
+  { id: 'overwhelmed', emoji: '😵', label: 'Overwhelmed', color: 'from-red-200 to-pink-200', weatherMood: 'rainy', cupDelta: -15, connectionDelta: -10, moodLabel: 'Stressed' },
+  { id: 'disconnected', emoji: '😢', label: 'Disconnected', color: 'from-blue-200 to-cyan-200', weatherMood: 'rainy', cupDelta: -12, connectionDelta: -15, moodLabel: 'Feeling distant' },
+  { id: 'affectionate', emoji: '😍', label: 'Affectionate', color: 'from-pink-200 to-rose-200', weatherMood: 'sunny', cupDelta: 10, connectionDelta: 12, moodLabel: 'Happy and connected' },
+  { id: 'exhausted', emoji: '😴', label: 'Exhausted', color: 'from-purple-200 to-indigo-200', weatherMood: 'cloudy', cupDelta: -10, connectionDelta: -5, moodLabel: 'Needs connection' },
+  { id: 'reassurance', emoji: '🤗', label: 'Need Reassurance', color: 'from-yellow-200 to-orange-200', weatherMood: 'cloudy', cupDelta: -8, connectionDelta: -8, moodLabel: 'Needs connection' },
+  { id: 'space', emoji: '😌', label: 'Need Space', color: 'from-green-200 to-emerald-200', weatherMood: 'windy', cupDelta: 0, connectionDelta: -5, moodLabel: 'Content' },
+  { id: 'anxious', emoji: '😰', label: 'Anxious', color: 'from-orange-200 to-yellow-200', weatherMood: 'rainy', cupDelta: -12, connectionDelta: -8, moodLabel: 'Stressed' },
+  { id: 'loving', emoji: '💕', label: 'Loving', color: 'from-rose-200 to-pink-200', weatherMood: 'sunny', cupDelta: 12, connectionDelta: 15, moodLabel: 'Happy and connected' },
+];
+
+const helpOptions = ['Listen', 'Help with tasks', 'Give space', 'Physical affection', 'Reassure them'];
 
 export const CheckInPage = ({ onNavigate }) => {
+  const { relationshipData, recordCheckIn, streak } = useApp();
+  const profile = relationshipData.profile || {};
+
   const [selectedState, setSelectedState] = useState(null);
+  const [note, setNote] = useState('');
+  const [helpActions, setHelpActions] = useState([]);
   const [submitted, setSubmitted] = useState(false);
 
-  const emotionalStates = [
-    { id: 'overwhelmed', emoji: '😵', label: 'Overwhelmed', color: 'from-red-200 to-pink-200' },
-    { id: 'disconnected', emoji: '😢', label: 'Disconnected', color: 'from-blue-200 to-cyan-200' },
-    { id: 'affectionate', emoji: '😍', label: 'Affectionate', color: 'from-pink-200 to-rose-200' },
-    { id: 'exhausted', emoji: '😴', label: 'Exhausted', color: 'from-purple-200 to-indigo-200' },
-    { id: 'reassurance', emoji: '🤗', label: 'Need Reassurance', color: 'from-yellow-200 to-orange-200' },
-    { id: 'space', emoji: '😌', label: 'Need Space', color: 'from-green-200 to-emerald-200' },
-    { id: 'anxious', emoji: '😰', label: 'Anxious', color: 'from-orange-200 to-yellow-200' },
-    { id: 'loving', emoji: '💕', label: 'Loving', color: 'from-rose-200 to-pink-200' },
-  ];
+  const toggleHelp = (option) => {
+    setHelpActions((prev) =>
+      prev.includes(option) ? prev.filter((o) => o !== option) : [...prev, option]
+    );
+  };
 
   const handleSubmit = () => {
+    const state = emotionalStates.find((s) => s.id === selectedState);
+    if (!state) return;
+
+    const currentCup = profile.cupFullness ?? 72;
+    const currentConnection = relationshipData.connectionLevel ?? 72;
+
+    recordCheckIn({
+      stateId: state.id,
+      moodLabel: state.moodLabel,
+      weatherMood: state.weatherMood,
+      cupFullness: Math.min(100, Math.max(0, currentCup + state.cupDelta)),
+      connectionLevel: Math.min(100, Math.max(0, currentConnection + state.connectionDelta)),
+      note,
+      helpActions,
+    });
+
     setSubmitted(true);
     setTimeout(() => {
       setSelectedState(null);
+      setNote('');
+      setHelpActions([]);
       setSubmitted(false);
-    }, 2000);
+    }, 2500);
   };
 
   const handleTabChange = (tab) => {
@@ -37,6 +69,8 @@ export const CheckInPage = ({ onNavigate }) => {
     else if (tab === 'weather') onNavigate?.('weather');
   };
 
+  const streakCount = streak?.current ?? 0;
+
   return (
     <motion.div
       className="min-h-screen bg-bae-cream pb-32 pt-0"
@@ -45,7 +79,6 @@ export const CheckInPage = ({ onNavigate }) => {
     >
       <SafetyHeader />
 
-      {/* Main Content */}
       <div className="max-w-md mx-auto px-4 py-6 space-y-6">
         {/* Header */}
         <motion.div
@@ -53,6 +86,17 @@ export const CheckInPage = ({ onNavigate }) => {
           animate={{ y: 0, opacity: 1 }}
           className="text-center mt-6"
         >
+          {/* Streak badge */}
+          <div className="flex justify-center mb-3">
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold
+              ${streakCount > 0 ? 'bg-orange-100 text-orange-700' : 'bg-bae-light-peach text-bae-navy/60'}`}>
+              🔥
+              {streakCount > 0
+                ? `${streakCount} day streak!`
+                : 'Start your streak today'}
+            </span>
+          </div>
+
           <h2 className="text-2xl font-bold text-bae-navy mb-2">
             How is your person feeling?
           </h2>
@@ -110,6 +154,8 @@ export const CheckInPage = ({ onNavigate }) => {
                         What's contributing to this?
                       </p>
                       <textarea
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
                         placeholder="e.g., Too many things to do, missing you, stressed about work..."
                         className="w-full px-4 py-3 rounded-xl border border-bae-peach bg-white placeholder-bae-navy/40 text-bae-navy focus:outline-none focus:ring-2 focus:ring-bae-coral"
                         rows="3"
@@ -121,17 +167,17 @@ export const CheckInPage = ({ onNavigate }) => {
                         How can you help right now?
                       </p>
                       <div className="space-y-2">
-                        {['Listen', 'Help with tasks', 'Give space', 'Physical affection', 'Reassure them'].map(
-                          (option) => (
-                            <label key={option} className="flex items-center gap-3 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                className="w-4 h-4 rounded accent-bae-coral cursor-pointer"
-                              />
-                              <span className="text-sm text-bae-navy">{option}</span>
-                            </label>
-                          )
-                        )}
+                        {helpOptions.map((option) => (
+                          <label key={option} className="flex items-center gap-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={helpActions.includes(option)}
+                              onChange={() => toggleHelp(option)}
+                              className="w-4 h-4 rounded accent-bae-coral cursor-pointer"
+                            />
+                            <span className="text-sm text-bae-navy">{option}</span>
+                          </label>
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -179,8 +225,13 @@ export const CheckInPage = ({ onNavigate }) => {
             <h3 className="text-2xl font-bold text-bae-navy mb-2">
               Check-in saved!
             </h3>
+            {streakCount > 0 && (
+              <p className="text-sm font-semibold text-orange-600 mb-1">
+                🔥 {streakCount}-day streak!
+              </p>
+            )}
             <p className="text-sm text-bae-navy/70 text-center">
-              We’re now tracking emotional rhythms to help you support each other better.
+              We're now tracking emotional rhythms to help you support each other better.
             </p>
           </motion.div>
         )}
@@ -199,7 +250,6 @@ export const CheckInPage = ({ onNavigate }) => {
         </Card>
       </div>
 
-      {/* Bottom Navigation */}
       <BottomNavigation activeTab="checkin" onTabChange={handleTabChange} />
     </motion.div>
   );

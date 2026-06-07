@@ -5,13 +5,13 @@ import { useApp } from '../context/AppContext';
 import SafetyHeader from '../components/common/SafetyHeader';
 import BottomNavigation from '../components/common/BottomNavigation';
 
-const ProfileEditPage = () => {
-  const { relationshipData, updateProfile, goToPage } = useApp();
+const ProfileEditPage = ({ onNavigate }) => {
+  const { relationshipData, updateProfile } = useApp();
   const [formData, setFormData] = useState(relationshipData.profile);
 
   const handleSave = () => {
     updateProfile(formData);
-    goToPage('home');
+    onNavigate?.('home');
   };
 
   const handleChange = (field, value) => {
@@ -31,7 +31,7 @@ const ProfileEditPage = () => {
           <div className="flex items-center gap-4 mb-6">
             <motion.button
               whileTap={{ scale: 0.9 }}
-              onClick={() => goToPage('home')}
+              onClick={() => onNavigate?.('home')}
               className="p-2 hover:bg-bae-peach/30 rounded-full transition"
             >
               <ArrowLeft className="w-5 h-5 text-bae-navy" />
