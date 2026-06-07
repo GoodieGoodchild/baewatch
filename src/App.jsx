@@ -12,6 +12,7 @@ import MemoriesPage from './pages/MemoriesPage';
 import GamesPage from './pages/GamesPage';
 import WeatherDetailsPage from './pages/WeatherDetailsPage';
 import ProfileEditPage from './pages/ProfileEditPage';
+import InsightsPage from './pages/InsightsPage';
 import { AppProvider, useApp } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import './App.css';
@@ -119,6 +120,8 @@ function AppContent() {
         <WeatherDetailsPage key="weather" onNavigate={handleNavigate} />
       ) : currentPage === 'profile-edit' ? (
         <ProfileEditPage key="profile-edit" />
+      ) : currentPage === 'insights' ? (
+        <InsightsPage key="insights" onNavigate={handleNavigate} />
       ) : null}
     </AnimatePresence>
   );

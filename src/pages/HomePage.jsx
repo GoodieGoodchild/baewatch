@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import SafetyHeader from '../components/common/SafetyHeader';
 import BottomNavigation from '../components/common/BottomNavigation';
-import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import RelationshipWeatherWidget from '../components/widgets/RelationshipWeatherWidget';
 import ConnectionLevelWidget from '../components/widgets/ConnectionLevelWidget';
 import InsightCard from '../components/cards/InsightCard';
-import { Heart, Zap, TrendingUp, Edit } from 'lucide-react';
+import { Edit } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { getSuggestions } from '../services/suggestionEngine';
 
 export const HomePage = ({ onNavigate }) => {
   const [activeTab, setActiveTab] = useState('home');
@@ -16,6 +16,12 @@ export const HomePage = ({ onNavigate }) => {
   const profile = relationshipData.profile || {};
   const partnerName = profile.partnerName || 'your person';
   const cupFullness = profile.cupFullness ?? 72;
+  const suggestions = getSuggestions({
+    profile,
+    connectionLevel: relationshipData.connectionLevel ?? 72,
+    weatherMood: relationshipData.weatherMood ?? 'cloudy',
+    checkInHistory: relationshipData.checkInHistory ?? [],
+  });
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -120,6 +126,14 @@ export const HomePage = ({ onNavigate }) => {
 
         <motion.div variants={itemVariants}>
           <ConnectionLevelWidget level={relationshipData.connectionLevel} />
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => onNavigate?.('insights')}
+            className="mt-2 w-full text-center text-sm text-bae-coral font-medium py-2 rounded-xl hover:bg-bae-peach/30 transition-colors"
+          >
+            📊 View Insights
+          </motion.button>
         </motion.div>
 
         <motion.div variants={itemVariants}>
@@ -137,42 +151,23 @@ export const HomePage = ({ onNavigate }) => {
               Suggested Actions
             </h3>
             <div className="space-y-3">
-              {[
-                {
-                  icon: Zap,
-                  title: 'Quick Win',
-                  description: 'Make their coffee exactly how they like it',
-                },
-                {
-                  icon: Heart,
-                  title: 'Affection',
-                  description: 'Give them a caring compliment today',
-                },
-                {
-                  icon: TrendingUp,
-                  title: 'Conversation',
-                  description: `Ask: How can I best fill ${partnerName}’s cup?`,
-                },
-              ].map((action, idx) => {
-                const Icon = action.icon;
-                return (
-                  <motion.button
-                    key={idx}
-                    whileHover={{ x: 4 }}
-                    className="w-full flex items-start gap-3 p-3 bg-bae-light-peach rounded-xl hover:bg-bae-peach transition-colors text-left"
-                  >
-                    <Icon className="w-5 h-5 text-bae-coral flex-shrink-0 mt-1" />
-                    <div>
-                      <p className="font-semibold text-sm text-bae-navy">
-                        {action.title}
-                      </p>
-                      <p className="text-xs text-bae-navy/70">
-                        {action.description}
-                      </p>
-                    </div>
-                  </motion.button>
-                );
-              })}
+              {suggestions.map((action, idx) => (
+                <motion.button
+                  key={idx}
+                  whileHover={{ x: 4 }}
+                  className="w-full flex items-start gap-3 p-3 bg-bae-light-peach rounded-xl hover:bg-bae-peach transition-colors text-left"
+                >
+                  <span className="text-xl flex-shrink-0 mt-0.5">{action.icon}</span>
+                  <div>
+                    <p className="font-semibold text-sm text-bae-navy">
+                      {action.title}
+                    </p>
+                    <p className="text-xs text-bae-navy/70">
+                      {action.description}
+                    </p>
+                  </div>
+                </motion.button>
+              ))}
             </div>
           </Card>
         </motion.div>

@@ -32,6 +32,8 @@ export const AppProvider = ({ children }) => {
       supportPreferences: null,
       conversationStyle: null,
     },
+    checkInHistory: [],
+    connectionLevelHistory: [],
   });
 
   // Load data from Firestore on user login
@@ -108,6 +110,17 @@ export const AppProvider = ({ children }) => {
     setRelationshipData((prev) => ({ ...prev, profile: { ...prev.profile, ...profile } }));
   }, []);
 
+  const deleteMemory = useCallback((id) => {
+    setRelationshipData((prev) => ({
+      ...prev,
+      memories: prev.memories.filter((m) => m.id !== id),
+    }));
+  }, []);
+
+  const updateWeatherMood = useCallback((mood) => {
+    setRelationshipData((prev) => ({ ...prev, weatherMood: mood }));
+  }, []);
+
   const updateSignals = useCallback((signals) => {
     setRelationshipData((prev) => ({
       ...prev,
@@ -115,15 +128,52 @@ export const AppProvider = ({ children }) => {
     }));
   }, []);
 
+  const recordCheckIn = useCallback((checkIn) => {
+    const todayString = new Date().toISOString().split('T')[0];
+    const timestamp = new Date().toISOString();
+    setRelationshipData((prev) => {
+      const newCheckInEntry = {
+        date: todayString,
+        stateId: checkIn.stateId,
+        cupFullness: checkIn.cupFullness ?? prev.profile?.cupFullness,
+        connectionLevel: checkIn.connectionLevel ?? prev.connectionLevel,
+        timestamp,
+      };
+      const newConnectionEntry = {
+        date: todayString,
+        value: checkIn.connectionLevel ?? prev.connectionLevel,
+      };
+      return {
+        ...prev,
+        lastCheckIn: { ...checkIn, timestamp },
+        weatherMood: checkIn.weatherMood ?? prev.weatherMood,
+        connectionLevel: checkIn.connectionLevel ?? prev.connectionLevel,
+        profile: {
+          ...prev.profile,
+          currentMood: checkIn.moodLabel ?? prev.profile?.currentMood,
+          cupFullness: checkIn.cupFullness ?? prev.profile?.cupFullness,
+        },
+        checkInHistory: [...(prev.checkInHistory || []), newCheckInEntry].slice(-60),
+        connectionLevelHistory: [...(prev.connectionLevelHistory || []), newConnectionEntry].slice(-30),
+      };
+    });
+  }, []);
+
+  const isLoaded = true;
+
   const value = {
     currentPage,
     goToPage,
+    isLoaded,
     relationshipData,
     updateConnectionLevel,
+    updateWeatherMood,
     addMemory,
+    deleteMemory,
     addWin,
     updateProfile,
     updateSignals,
+    recordCheckIn,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
