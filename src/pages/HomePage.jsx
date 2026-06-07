@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import SafetyHeader from '../components/common/SafetyHeader';
 import BottomNavigation from '../components/common/BottomNavigation';
 import Button from '../components/common/Button';
@@ -7,51 +7,137 @@ import Card from '../components/common/Card';
 import RelationshipWeatherWidget from '../components/widgets/RelationshipWeatherWidget';
 import ConnectionLevelWidget from '../components/widgets/ConnectionLevelWidget';
 import InsightCard from '../components/cards/InsightCard';
-import { Heart, Zap, TrendingUp, Edit } from 'lucide-react';
+import { Heart, Zap, TrendingUp, Edit, X, CheckCircle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+
+const questions = [
+  "What made you feel most loved this week?",
+  "What's a dream we haven't talked about yet?",
+  "What would a perfect day with me look like?",
+  "What's something I do that always makes you smile?",
+  "What's one thing you'd love us to do more of?",
+  "What does feeling truly understood by me look like?",
+  "What's your favourite memory of us together?",
+  "What does home feel like when you're with me?",
+  "What's something you appreciate that I do without being asked?",
+  "What's one thing you wish I knew about how you're feeling lately?",
+  "If we had a free weekend with no plans, what would you want to do?",
+  "What's a goal I could help you with right now?",
+  "What's the last thing I said that really stayed with you?",
+  "When do you feel most connected to me?",
+  "What would help you feel most supported this week?",
+  "What's something you've been wanting to tell me but haven't yet?",
+  "What's a new experience you'd love for us to try?",
+  "What do you love most about our relationship?",
+  "How do you know when I'm proud of you?",
+  "What does a good argument resolution look like to you?",
+  "What small gesture means the most to you?",
+  "What's something you admire about the person you're becoming?",
+  "What's one thing I could do to make your mornings better?",
+  "What's a strength of mine you rely on?",
+  "What makes you feel safe with me?",
+  "What's something you're really looking forward to?",
+  "What's something you want us to get better at together?",
+  "When was the last time you felt really seen by me?",
+  "What's the best compliment I've ever given you?",
+  "What does love mean to you right now?"
+];
+
+const getDayOfYear = () => {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 0);
+  return Math.floor((now - start) / (1000 * 60 * 60 * 24));
+};
+
+const getCurrentWeekString = () => {
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const week = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
+  return `${now.getFullYear()}-W${week}`;
+};
+
+const getLastNDaysStr = (n) => {
+  const result = [];
+  for (let i = 0; i < n; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    result.push(d.toISOString().slice(0, 10));
+  }
+  return result;
+};
+
+const moodEmojis = {
+  overwhelmed: '😵',
+  disconnected: '😢',
+  affectionate: '😍',
+  exhausted: '😴',
+  reassurance: '🤗',
+  space: '😌',
+  anxious: '😰',
+  loving: '💕',
+};
 
 export const HomePage = ({ onNavigate }) => {
   const [activeTab, setActiveTab] = useState('home');
-  const { relationshipData } = useApp();
+  const { relationshipData, dismissWeeklyRecap } = useApp();
   const profile = relationshipData.profile || {};
   const partnerName = profile.partnerName || 'your person';
   const cupFullness = profile.cupFullness ?? 72;
 
+  const checkInHistory = relationshipData.checkInHistory || [];
+  const weeklyRecap = relationshipData.weeklyRecap || { weekOf: '', dismissed: false };
+  const dailyAnswers = relationshipData.dailyAnswers || {};
+  const bucketList = relationshipData.bucketList || [];
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const answeredToday = !!dailyAnswers[todayStr];
+  const todayQuestion = questions[getDayOfYear() % questions.length];
+  const truncatedQuestion = todayQuestion.length > 80 ? todayQuestion.slice(0, 80) + '...' : todayQuestion;
+
+  const currentWeek = getCurrentWeekString();
+  const isSunday = new Date().getDay() === 0;
+  const showRecap = isSunday || (weeklyRecap.weekOf !== currentWeek);
+
+  const last7Days = getLastNDaysStr(7);
+  const weekCheckIns = checkInHistory.filter((c) => last7Days.includes(c.date));
+  const hasEnoughData = weekCheckIns.length >= 2;
+  const avgCup = hasEnoughData
+    ? Math.round(weekCheckIns.reduce((s, c) => s + (c.cupFullness || 0), 0) / weekCheckIns.length)
+    : 0;
+  const firstConn = weekCheckIns.length > 0 ? weekCheckIns[0].connectionLevel : null;
+  const lastConn = weekCheckIns.length > 0 ? weekCheckIns[weekCheckIns.length - 1].connectionLevel : null;
+  const connDelta = firstConn !== null && lastConn !== null ? lastConn - firstConn : null;
+  const connArrow = connDelta === null ? '→' : connDelta > 0 ? '↑' : connDelta < 0 ? '↓' : '→';
+  const topMoodCounts = weekCheckIns.reduce((acc, c) => {
+    if (c.stateId) acc[c.stateId] = (acc[c.stateId] || 0) + 1;
+    return acc;
+  }, {});
+  const topMood = Object.entries(topMoodCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+
+  const showRepairBanner = relationshipData.weatherMood === 'rainy' || (relationshipData.connectionLevel ?? 72) < 50;
+  const [repairDismissed, setRepairDismissed] = useState(false);
+
+  const activeBucketItems = bucketList.filter((i) => !i.completed);
+  const topBucketPreview = activeBucketItems.slice(0, 2);
+
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    if (tab === 'home') {
-      onNavigate?.('home');
-    } else if (tab === 'checkin') {
-      onNavigate?.('checkin');
-    } else if (tab === 'add') {
-      onNavigate?.('coach');
-    } else if (tab === 'memories') {
-      onNavigate?.('memories');
-    } else if (tab === 'games') {
-      onNavigate?.('games');
-    } else if (tab === 'weather') {
-      onNavigate?.('weather');
-    }
+    if (tab === 'home') onNavigate?.('home');
+    else if (tab === 'checkin') onNavigate?.('checkin');
+    else if (tab === 'add') onNavigate?.('coach');
+    else if (tab === 'memories') onNavigate?.('memories');
+    else if (tab === 'games') onNavigate?.('games');
+    else if (tab === 'weather') onNavigate?.('weather');
   };
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2,
-      },
-    },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.2 } },
   };
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.6, ease: 'easeOut' },
-    },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } },
   };
 
   const cupMessage = () => {
@@ -84,10 +170,59 @@ export const HomePage = ({ onNavigate }) => {
             </motion.button>
           </div>
           <h2 className="text-2xl font-bold text-bae-navy mb-1">
-            Let’s make today a great one for {partnerName}.
+            Let's make today a great one for {partnerName}.
           </h2>
           <p className="text-sm text-bae-navy/70">Tiny efforts. Big love.</p>
         </motion.div>
+
+        {/* Weekly Recap Card */}
+        <AnimatePresence>
+          {showRecap && (
+            <motion.div
+              variants={itemVariants}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <Card variant="gradient">
+                <div className="flex items-start justify-between mb-3">
+                  <p className="text-base font-bold text-bae-navy">💌 Your Week in Love</p>
+                </div>
+                {hasEnoughData ? (
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="bg-white/50 rounded-xl p-3 text-center">
+                      <p className="text-xl font-bold text-bae-coral">{weekCheckIns.length}</p>
+                      <p className="text-xs text-bae-navy/60">Check-ins this week</p>
+                    </div>
+                    <div className="bg-white/50 rounded-xl p-3 text-center">
+                      <p className="text-xl font-bold text-bae-coral">{avgCup}%</p>
+                      <p className="text-xs text-bae-navy/60">Avg cup fullness</p>
+                    </div>
+                    <div className="bg-white/50 rounded-xl p-3 text-center">
+                      <p className="text-xl font-bold text-bae-coral">
+                        {connArrow} {connDelta !== null ? Math.abs(connDelta) : 0} pts
+                      </p>
+                      <p className="text-xs text-bae-navy/60">Connection</p>
+                    </div>
+                    <div className="bg-white/50 rounded-xl p-3 text-center">
+                      <p className="text-xl font-bold">{topMood ? moodEmojis[topMood] || '💕' : '💕'}</p>
+                      <p className="text-xs text-bae-navy/60">Top mood</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-bae-navy/60 mb-4">Start checking in daily to see your weekly recap 💕</p>
+                )}
+                <Button
+                  variant="ghost"
+                  onClick={dismissWeeklyRecap}
+                  className="w-full text-sm"
+                >
+                  See you next week 💕
+                </Button>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <motion.div variants={itemVariants}>
           <RelationshipWeatherWidget
@@ -97,13 +232,68 @@ export const HomePage = ({ onNavigate }) => {
           />
         </motion.div>
 
+        {/* Repair Banner */}
+        <AnimatePresence>
+          {showRepairBanner && !repairDismissed && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center justify-between"
+            >
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-blue-700">💙 Repair Mode</p>
+                <p className="text-xs text-blue-600/70 mt-0.5">Let's reconnect — a guided repair toolkit awaits.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => onNavigate?.('repair')}
+                  className="text-xs font-semibold text-white bg-blue-500 rounded-xl px-3 py-1.5"
+                >
+                  Start
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setRepairDismissed(true)}
+                  className="p-1 hover:bg-blue-100 rounded-full"
+                >
+                  <X className="w-4 h-4 text-blue-400" />
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Daily Question Card */}
+        <motion.div variants={itemVariants}>
+          <Card variant="light">
+            <div className="flex items-start justify-between mb-2">
+              <p className="text-xs font-semibold text-bae-coral uppercase tracking-wide">Daily Question</p>
+              {answeredToday && (
+                <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+                  <CheckCircle className="w-3.5 h-3.5" /> Answered today
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-bae-navy font-medium mb-3">{truncatedQuestion}</p>
+            <Button
+              variant={answeredToday ? 'ghost' : 'secondary'}
+              onClick={() => onNavigate?.('daily-question')}
+              className="text-sm"
+            >
+              {answeredToday ? 'See your answer →' : 'Answer now →'}
+            </Button>
+          </Card>
+        </motion.div>
+
         <motion.div variants={itemVariants}>
           <Card variant="light">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-lg font-semibold text-bae-navy">Partner Cup</h3>
                 <p className="text-sm text-bae-navy/70">
-                  How full is {partnerName}’s cup today?
+                  How full is {partnerName}'s cup today?
                 </p>
               </div>
               <span className="text-2xl font-bold text-bae-coral">{cupFullness}%</span>
@@ -131,6 +321,28 @@ export const HomePage = ({ onNavigate }) => {
           />
         </motion.div>
 
+        {/* Bucket List Preview */}
+        <motion.div variants={itemVariants}>
+          <Card variant="light">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-semibold text-bae-navy">Bucket List 🌟</h3>
+              <span className="text-xs text-bae-navy/50">{activeBucketItems.length} remaining</span>
+            </div>
+            {topBucketPreview.length > 0 ? (
+              <div className="space-y-2 mb-3">
+                {topBucketPreview.map((item) => (
+                  <p key={item.id} className="text-sm text-bae-navy/70 truncate">• {item.title}</p>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-bae-navy/50 mb-3">No dreams yet — add your first!</p>
+            )}
+            <Button variant="ghost" onClick={() => onNavigate?.('bucket-list')} className="text-sm">
+              See all →
+            </Button>
+          </Card>
+        </motion.div>
+
         <motion.div variants={itemVariants}>
           <Card variant="light">
             <h3 className="text-lg font-semibold text-bae-navy mb-4">
@@ -151,7 +363,7 @@ export const HomePage = ({ onNavigate }) => {
                 {
                   icon: TrendingUp,
                   title: 'Conversation',
-                  description: `Ask: How can I best fill ${partnerName}’s cup?`,
+                  description: `Ask: How can I best fill ${partnerName}'s cup?`,
                 },
               ].map((action, idx) => {
                 const Icon = action.icon;
@@ -163,12 +375,8 @@ export const HomePage = ({ onNavigate }) => {
                   >
                     <Icon className="w-5 h-5 text-bae-coral flex-shrink-0 mt-1" />
                     <div>
-                      <p className="font-semibold text-sm text-bae-navy">
-                        {action.title}
-                      </p>
-                      <p className="text-xs text-bae-navy/70">
-                        {action.description}
-                      </p>
+                      <p className="font-semibold text-sm text-bae-navy">{action.title}</p>
+                      <p className="text-xs text-bae-navy/70">{action.description}</p>
                     </div>
                   </motion.button>
                 );

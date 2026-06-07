@@ -8,6 +8,7 @@ import { useApp } from '../context/AppContext';
 
 export const WeatherDetailsPage = ({ onNavigate }) => {
   const { relationshipData } = useApp();
+  const showRepair = relationshipData.weatherMood === 'rainy' || (relationshipData.connectionLevel ?? 72) < 50;
   const profile = relationshipData.profile || {};
 
   const moodStatus = {
@@ -180,6 +181,22 @@ export const WeatherDetailsPage = ({ onNavigate }) => {
             Understanding your partner's needs and patterns
           </p>
         </motion.div>
+
+        {showRepair && (
+          <motion.button
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => onNavigate?.('repair')}
+            className="w-full bg-blue-50 border border-blue-200 rounded-2xl p-4 text-left flex items-center justify-between"
+          >
+            <div>
+              <p className="text-sm font-semibold text-blue-700">💙 Repair Mode</p>
+              <p className="text-xs text-blue-600/70 mt-0.5">A guided path back to each other</p>
+            </div>
+            <span className="text-xs font-semibold text-white bg-blue-500 rounded-xl px-3 py-1.5">Open</span>
+          </motion.button>
+        )}
 
         <div className="space-y-6">
           {weatherCharacteristics.map((category, categoryIdx) => {

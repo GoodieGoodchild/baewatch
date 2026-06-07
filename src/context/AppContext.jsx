@@ -5,6 +5,13 @@ import { useAuth } from './AuthContext';
 
 export const AppContext = createContext();
 
+const getCurrentWeekString = () => {
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const week = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
+  return `${now.getFullYear()}-W${week}`;
+};
+
 export const AppProvider = ({ children }) => {
   const { user } = useAuth();
   const [currentPage, setCurrentPage] = useState('splash');
@@ -32,6 +39,11 @@ export const AppProvider = ({ children }) => {
       supportPreferences: null,
       conversationStyle: null,
     },
+    checkInHistory: [],
+    connectionLevelHistory: [],
+    weeklyRecap: { weekOf: '', dismissed: false },
+    dailyAnswers: {},
+    bucketList: [],
   });
 
   // Load data from Firestore on user login
@@ -115,15 +127,96 @@ export const AppProvider = ({ children }) => {
     }));
   }, []);
 
+  const updateWeatherMood = useCallback((mood) => {
+    setRelationshipData((prev) => ({ ...prev, weatherMood: mood }));
+  }, []);
+
+  const recordCheckIn = useCallback(({ stateId, cupFullness, connectionLevel }) => {
+    const dateStr = new Date().toISOString().slice(0, 10);
+    setRelationshipData((prev) => {
+      const newCheckIn = { date: dateStr, stateId, cupFullness, connectionLevel };
+      const newConnPoint = { date: dateStr, value: connectionLevel };
+      return {
+        ...prev,
+        lastCheckIn: dateStr,
+        checkInHistory: [...(prev.checkInHistory || []), newCheckIn].slice(-60),
+        connectionLevelHistory: [...(prev.connectionLevelHistory || []), newConnPoint].slice(-14),
+      };
+    });
+  }, []);
+
+  const dismissWeeklyRecap = useCallback(() => {
+    setRelationshipData((prev) => ({
+      ...prev,
+      weeklyRecap: { weekOf: getCurrentWeekString(), dismissed: true },
+    }));
+  }, []);
+
+  const saveDailyAnswer = useCallback((dateString, answer) => {
+    setRelationshipData((prev) => ({
+      ...prev,
+      dailyAnswers: { ...(prev.dailyAnswers || {}), [dateString]: answer },
+    }));
+  }, []);
+
+  const addBucketItem = useCallback(({ title, category }) => {
+    const newItem = {
+      id: Date.now(),
+      title,
+      category,
+      completed: false,
+      completedAt: null,
+      addedAt: new Date().toISOString(),
+    };
+    setRelationshipData((prev) => ({
+      ...prev,
+      bucketList: [newItem, ...(prev.bucketList || [])],
+    }));
+  }, []);
+
+  const toggleBucketItem = useCallback((id) => {
+    setRelationshipData((prev) => ({
+      ...prev,
+      bucketList: (prev.bucketList || []).map((item) =>
+        item.id === id
+          ? { ...item, completed: !item.completed, completedAt: !item.completed ? new Date().toISOString() : null }
+          : item
+      ),
+    }));
+  }, []);
+
+  const deleteBucketItem = useCallback((id) => {
+    setRelationshipData((prev) => ({
+      ...prev,
+      bucketList: (prev.bucketList || []).filter((item) => item.id !== id),
+    }));
+  }, []);
+
+  const deleteMemory = useCallback((id) => {
+    setRelationshipData((prev) => ({
+      ...prev,
+      memories: (prev.memories || []).filter((m) => m.id !== id),
+    }));
+  }, []);
+
   const value = {
     currentPage,
     goToPage,
     relationshipData,
+    isLoaded: true,
     updateConnectionLevel,
     addMemory,
+    deleteMemory,
     addWin,
     updateProfile,
     updateSignals,
+    updateWeatherMood,
+    recordCheckIn,
+    dismissWeeklyRecap,
+    saveDailyAnswer,
+    addBucketItem,
+    toggleBucketItem,
+    deleteBucketItem,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
