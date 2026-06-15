@@ -1,99 +1,99 @@
-import React, { createContext, useState, useCallback, useEffect } from 'react';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import React, { createContext, useState, useCallback, useEffect, useRef } from 'react';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from './AuthContext';
 
 export const AppContext = createContext();
 
+const defaultRelationshipData = {
+  profile: {
+    yourName: '',
+    partnerName: '',
+    nickname: 'your person',
+    relationshipStage: 'together',
+    relationshipLength: '',
+    partnerNeed: 'Emotional support',
+    supportPreference: 'Quality time',
+    currentMood: 'Needs connection',
+    cupFullness: 72,
+    partnerNotes: '',
+  },
+  connectionLevel: 72,
+  weatherMood: 'cloudy',
+  lastCheckIn: null,
+  memories: [],
+  recentWins: [],
+  adaptiveSignals: {
+    affectionProfile: null,
+    stressRhythm: null,
+    supportPreferences: null,
+    conversationStyle: null,
+  },
+};
+
 export const AppProvider = ({ children }) => {
-  const { user } = useAuth();
-  const [currentPage, setCurrentPage] = useState('splash');
-  const [relationshipData, setRelationshipData] = useState({
-    profile: {
-      yourName: '',
-      partnerName: '',
-      nickname: 'your person',
-      relationshipStage: 'together',
-      relationshipLength: '',
-      partnerNeed: 'Emotional support',
-      supportPreference: 'Quality time',
-      currentMood: 'Needs connection',
-      cupFullness: 72,
-      partnerNotes: '',
-    },
-    connectionLevel: 72,
-    weatherMood: 'cloudy',
-    lastCheckIn: null,
-    memories: [],
-    recentWins: [],
-    adaptiveSignals: {
-      affectionProfile: null,
-      stressRhythm: null,
-      supportPreferences: null,
-      conversationStyle: null,
-    },
-  });
+  const { currentUser } = useAuth();
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [relationshipData, setRelationshipData] = useState(defaultRelationshipData);
 
-  // Load data from Firestore on user login
+  // Prevents the save effect from echoing back data that just arrived from Firestore
+  const fromSnapshot = useRef(false);
+  const isLoadedRef = useRef(false);
+
   useEffect(() => {
-    if (!user) return;
+    if (!currentUser) {
+      setIsLoaded(false);
+      isLoadedRef.current = false;
+      return;
+    }
 
-    const loadData = async () => {
-      try {
-        const docRef = doc(db, 'users', user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setRelationshipData(data.relationshipData || relationshipData);
-        }
-      } catch (error) {
-        console.error('Error loading data:', error);
+    const unsubscribe = onSnapshot(doc(db, 'users', currentUser.uid), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        fromSnapshot.current = true;
+        setRelationshipData(data.relationshipData || defaultRelationshipData);
       }
-    };
-
-    loadData();
-
-    // Set up real-time listener
-    const unsubscribe = onSnapshot(doc(db, 'users', user.uid), (doc) => {
-      if (doc.exists()) {
-        const data = doc.data();
-        setRelationshipData(data.relationshipData || relationshipData);
-      }
+      isLoadedRef.current = true;
+      setIsLoaded(true);
     });
 
     return unsubscribe;
-  }, [user]);
+  }, [currentUser]);
 
-  // Save data to Firestore when relationshipData changes
   useEffect(() => {
-    if (!user) return;
+    if (!currentUser || !isLoadedRef.current) return;
 
-    const saveData = async () => {
-      try {
-        await setDoc(doc(db, 'users', user.uid), {
-          relationshipData,
-          updatedAt: new Date(),
-        }, { merge: true });
-      } catch (error) {
-        console.error('Error saving data:', error);
-      }
-    };
+    if (fromSnapshot.current) {
+      fromSnapshot.current = false;
+      return;
+    }
 
-    saveData();
-  }, [relationshipData, user]);
-
-  const goToPage = useCallback((page) => {
-    setCurrentPage(page);
-  }, []);
+    setDoc(
+      doc(db, 'users', currentUser.uid),
+      { relationshipData, updatedAt: new Date() },
+      { merge: true }
+    ).catch(console.error);
+  }, [relationshipData, currentUser]);
 
   const updateConnectionLevel = useCallback((level) => {
     setRelationshipData((prev) => ({ ...prev, connectionLevel: level }));
   }, []);
 
+  const updateWeatherMood = useCallback((mood) => {
+    setRelationshipData((prev) => ({ ...prev, weatherMood: mood }));
+  }, []);
+
   const addMemory = useCallback((memory) => {
     setRelationshipData((prev) => ({
       ...prev,
-      memories: [memory, ...prev.memories],
+      memories: [{ ...memory, id: Date.now() }, ...prev.memories],
+    }));
+  }, []);
+
+  const deleteMemory = useCallback((id) => {
+    setRelationshipData((prev) => ({
+      ...prev,
+      memories: prev.memories.filter((m) => m.id !== id),
     }));
   }, []);
 
@@ -105,7 +105,24 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   const updateProfile = useCallback((profile) => {
-    setRelationshipData((prev) => ({ ...prev, profile: { ...prev.profile, ...profile } }));
+    setRelationshipData((prev) => ({
+      ...prev,
+      profile: { ...prev.profile, ...profile },
+    }));
+  }, []);
+
+  const recordCheckIn = useCallback((checkIn) => {
+    setRelationshipData((prev) => ({
+      ...prev,
+      lastCheckIn: { ...checkIn, timestamp: new Date().toISOString() },
+      weatherMood: checkIn.weatherMood ?? prev.weatherMood,
+      connectionLevel: checkIn.connectionLevel ?? prev.connectionLevel,
+      profile: {
+        ...prev.profile,
+        currentMood: checkIn.moodLabel ?? prev.profile.currentMood,
+        cupFullness: checkIn.cupFullness ?? prev.profile.cupFullness,
+      },
+    }));
   }, []);
 
   const updateSignals = useCallback((signals) => {
@@ -116,13 +133,15 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   const value = {
-    currentPage,
-    goToPage,
+    isLoaded,
     relationshipData,
     updateConnectionLevel,
+    updateWeatherMood,
     addMemory,
+    deleteMemory,
     addWin,
     updateProfile,
+    recordCheckIn,
     updateSignals,
   };
 

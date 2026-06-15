@@ -118,7 +118,7 @@ function AppContent() {
       ) : currentPage === 'weather' ? (
         <WeatherDetailsPage key="weather" onNavigate={handleNavigate} />
       ) : currentPage === 'profile-edit' ? (
-        <ProfileEditPage key="profile-edit" />
+        <ProfileEditPage key="profile-edit" onNavigate={handleNavigate} />
       ) : null}
     </AnimatePresence>
   );
