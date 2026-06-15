@@ -6,10 +6,13 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html {
   scroll-behavior: smooth;
+  /* Prevent bounce/overscroll on iOS */
+  overscroll-behavior: none;
 }
 
 body {
@@ -20,13 +23,19 @@ body {
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.5;
   margin: 0;
+  /* Prevent pull-to-refresh interfering with the app */
+  overscroll-behavior-y: contain;
 }
 
 #root {
   width: 100%;
   min-height: 100vh;
+  min-height: 100dvh; /* dynamic viewport height — handles mobile browser chrome */
   display: flex;
   flex-direction: column;
+  /* Centre the app column on wide screens */
+  max-width: 430px;
+  margin: 0 auto;
 }
 
 button {
@@ -36,25 +45,39 @@ button {
   background: none;
 }
 
-/* Smooth scrolling for mobile */
-html {
-  scroll-behavior: smooth;
+input, textarea, select {
+  font-family: inherit;
+  font-size: 16px; /* prevents iOS auto-zoom on focus */
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
+/* Safe area insets for notched phones (iPhone X+, Android cutouts) */
+.safe-top    { padding-top:    env(safe-area-inset-top); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+/* Fixed bottom nav needs safe area padding */
+nav.fixed {
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
 }
 
-::-webkit-scrollbar-track {
-  background: #f5f5f5;
+/* Hide scrollbar on mobile — keep it functional */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #ff9c88;
-  border-radius: 4px;
-}
+/* Desktop scrollbar — subtle coral tint */
+::-webkit-scrollbar        { width: 6px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: #ffcfc7; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #ff9c88; }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #ff6b5b;
+/* Framer Motion exit animation flicker fix */
+[data-framer-portal-host] {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
 }

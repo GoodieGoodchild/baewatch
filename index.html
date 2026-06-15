@@ -2,10 +2,37 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#FF6B5B" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Bae Watch" />
+
+    <!-- Icons -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Bae Watch</title>
+
+    <!-- Viewport — prevent zoom on input focus on iOS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+
+    <!-- SEO / Social -->
+    <title>Bae Watch — Love Better. Notice More.</title>
+    <meta name="description" content="A relationship companion app that helps couples stay deeply connected through daily check-ins, conversation coaching, and shared growth." />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Bae Watch — Love Better. Notice More." />
+    <meta property="og:description" content="A relationship companion that helps couples stay deeply connected through daily check-ins, conversation coaching, and shared growth." />
+    <meta property="og:image" content="/favicon.svg" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Bae Watch" />
+    <meta name="twitter:description" content="Love better. Notice more." />
   </head>
   <body>
     <div id="root"></div>
