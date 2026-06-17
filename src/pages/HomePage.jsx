@@ -344,6 +344,23 @@ export const HomePage = ({ onNavigate }) => {
         </motion.div>
 
         <motion.div variants={itemVariants}>
+          <Card variant="peach">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl flex-shrink-0">💙</span>
+              <div className="flex-1">
+                <h3 className="text-base font-semibold text-bae-navy">Had a disagreement?</h3>
+                <p className="text-xs text-bae-navy/60 mt-0.5">
+                  A guided repair process — own your part, listen fully, reconnect.
+                </p>
+              </div>
+            </div>
+            <Button variant="primary" onClick={() => onNavigate?.('repair')} className="w-full mt-3" size="sm">
+              Start Repair Guide
+            </Button>
+          </Card>
+        </motion.div>
+
+        <motion.div variants={itemVariants}>
           <Card variant="light">
             <h3 className="text-lg font-semibold text-bae-navy mb-4">
               Suggested Actions
