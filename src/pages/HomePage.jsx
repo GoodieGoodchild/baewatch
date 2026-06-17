@@ -79,7 +79,7 @@ const moodEmojis = {
 
 export const HomePage = ({ onNavigate }) => {
   const [activeTab, setActiveTab] = useState('home');
-  const { relationshipData, dismissWeeklyRecap } = useApp();
+  const { relationshipData, dismissWeeklyRecap, dismissRepairCommitment } = useApp();
   const profile = relationshipData.profile || {};
   const partnerName = profile.partnerName || 'your person';
   const cupFullness = profile.cupFullness ?? 72;
@@ -115,6 +115,7 @@ export const HomePage = ({ onNavigate }) => {
   const topMood = Object.entries(topMoodCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
 
   const showRepairBanner = relationshipData.weatherMood === 'rainy' || (relationshipData.connectionLevel ?? 72) < 50;
+  const activeCommitment = (relationshipData.repairCommitments || []).find((c) => !c.done);
   const [repairDismissed, setRepairDismissed] = useState(false);
 
   const activeBucketItems = bucketList.filter((i) => !i.completed);
@@ -342,6 +343,27 @@ export const HomePage = ({ onNavigate }) => {
             </Button>
           </Card>
         </motion.div>
+
+        {activeCommitment && (
+          <motion.div variants={itemVariants}>
+            <Card variant="gradient">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-bae-navy/60 mb-1">📌 Your repair commitment</p>
+                  <p className="text-sm font-medium text-bae-navy">"{activeCommitment.text}"</p>
+                </div>
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                className="w-full mt-3"
+                onClick={() => dismissRepairCommitment(activeCommitment.date)}
+              >
+                <CheckCircle className="w-4 h-4 mr-1.5" /> I kept this promise ✓
+              </Button>
+            </Card>
+          </motion.div>
+        )}
 
         <motion.div variants={itemVariants}>
           <Card variant="peach">

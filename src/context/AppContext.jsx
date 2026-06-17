@@ -44,6 +44,7 @@ export const AppProvider = ({ children }) => {
     weeklyRecap: { weekOf: '', dismissed: false },
     dailyAnswers: {},
     bucketList: [],
+    repairCommitments: [],
   });
 
   // Load data from Firestore on user login
@@ -199,6 +200,25 @@ export const AppProvider = ({ children }) => {
     }));
   }, []);
 
+  const addRepairCommitment = useCallback((commitment) => {
+    setRelationshipData((prev) => ({
+      ...prev,
+      repairCommitments: [
+        { text: commitment, date: new Date().toISOString(), done: false },
+        ...(prev.repairCommitments || []),
+      ].slice(0, 10),
+    }));
+  }, []);
+
+  const dismissRepairCommitment = useCallback((date) => {
+    setRelationshipData((prev) => ({
+      ...prev,
+      repairCommitments: (prev.repairCommitments || []).map((c) =>
+        c.date === date ? { ...c, done: true } : c
+      ),
+    }));
+  }, []);
+
   const value = {
     currentPage,
     goToPage,
@@ -217,6 +237,8 @@ export const AppProvider = ({ children }) => {
     addBucketItem,
     toggleBucketItem,
     deleteBucketItem,
+    addRepairCommitment,
+    dismissRepairCommitment,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

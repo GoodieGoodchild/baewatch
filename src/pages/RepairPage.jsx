@@ -55,7 +55,7 @@ const fiveRules = [
 const TOTAL_STEPS = steps.length;
 
 export const RepairPage = ({ onNavigate }) => {
-  const { updateConnectionLevel, updateWeatherMood, relationshipData } = useApp();
+  const { updateConnectionLevel, updateWeatherMood, relationshipData, addRepairCommitment } = useApp();
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
 
@@ -78,6 +78,7 @@ export const RepairPage = ({ onNavigate }) => {
   // Step 5 — reconnect
   const [selectedReconnect, setSelectedReconnect] = useState(null);
   const [showResources, setShowResources] = useState(false);
+  const [savedCommitment, setSavedCommitment] = useState(null);
 
   const goTo = (target) => {
     setDirection(target > step ? 1 : -1);
@@ -330,13 +331,37 @@ export const RepairPage = ({ onNavigate }) => {
           Share this when you're ready. Avoid adding "but" — a real apology stands on its own.
         </p>
       </Card>
-      <Button variant="primary" onClick={advance} className="w-full">
+      <Button
+        variant="primary"
+        className="w-full"
+        onClick={() => {
+          // Extract the "Going forward, I will …" clause and save it as a commitment
+          const match = apologyText.match(/Going forward,\s*I will\s+(.+?)\.?\s*$/i);
+          const commitment = match ? match[1].trim() : null;
+          if (commitment && commitment !== '_____') {
+            addRepairCommitment(commitment);
+            setSavedCommitment(commitment);
+          }
+          advance();
+        }}
+      >
         Next
       </Button>
     </div>,
 
     // Step 5 — Active Building / Reconnect
     <div key="step5" className="space-y-4">
+      {savedCommitment && (
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+          <Card variant="peach">
+            <p className="text-xs font-semibold text-bae-navy/60 mb-1">📌 Your commitment — we'll remind you</p>
+            <p className="text-sm text-bae-navy font-medium">"{savedCommitment}"</p>
+            <p className="text-xs text-bae-navy/50 mt-1">
+              This will appear on your home screen until you mark it kept.
+            </p>
+          </Card>
+        </motion.div>
+      )}
       <Card variant="light">
         <p className="text-sm text-bae-navy/70">
           Repair isn't just stopping the bad — it's actively practicing appreciation, emotional
