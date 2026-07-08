@@ -80,7 +80,7 @@ const moodEmojis = {
 
 export const HomePage = ({ onNavigate }) => {
   const [activeTab, setActiveTab] = useState('home');
-  const { relationshipData, dismissWeeklyRecap, dismissRepairCommitment, demoMode, exitDemo } = useApp();
+  const { relationshipData, dismissWeeklyRecap, dismissRepairCommitment, demoMode, exitDemo, isPaired } = useApp();
   const profile = relationshipData.profile || {};
   const partnerName = profile.partnerName || 'your person';
   const cupFullness = profile.cupFullness ?? 72;
@@ -187,6 +187,40 @@ export const HomePage = ({ onNavigate }) => {
           </h2>
           <p className="text-sm text-bae-navy/70">Tiny efforts. Big love.</p>
         </motion.div>
+
+        {/* Connect your partner — top priority until paired */}
+        {!isPaired && !demoMode && (
+          <motion.div variants={itemVariants}>
+            <Card variant="gradient">
+              <div className="flex items-start gap-3">
+                <motion.span
+                  className="text-3xl flex-shrink-0"
+                  animate={{ scale: [1, 1.15, 1] }}
+                  transition={{ repeat: Infinity, duration: 2 }}
+                >
+                  💞
+                </motion.span>
+                <div className="flex-1">
+                  <h3 className="text-base font-semibold text-bae-navy">
+                    {partnerName !== 'your person' ? `Bring ${partnerName} in` : 'Connect your partner'}
+                  </h3>
+                  <p className="text-xs text-bae-navy/60 mt-0.5">
+                    Bae Watch is a two-player game — link up so your check-ins, love languages,
+                    and insights flow between your devices.
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                className="w-full mt-3"
+                onClick={() => onNavigate?.('partner-invite')}
+              >
+                Invite or enter a code 💌
+              </Button>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Weekly Recap Card */}
         <AnimatePresence>
