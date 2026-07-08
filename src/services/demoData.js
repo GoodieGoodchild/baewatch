@@ -123,6 +123,25 @@ export function buildDemoData() {
       },
     },
 
+    // What Maya's device would publish to the shared relationship doc.
+    partnerSync: {
+      name: 'Maya',
+      loveLanguage: 'words',
+      mood: 'anxious',
+      cupFullness: 41,
+      lastCheckIn: dayStr(daysAgo(0)),
+      latestCheckIn: {
+        date: dayStr(daysAgo(0)),
+        stateId: 'anxious',
+        moodLabel: 'Anxious',
+        note: "I keep wondering if I said too much again yesterday. I don't want to push him away, I just want to know we're okay.",
+        needs: ['Reassure me', 'Just listen'],
+      },
+      attachmentStyle: 'anxious',
+      insightCard: null, // demo sets partnerInsight directly below instead
+      commitment: 'I will say what I need once, clearly, and trust that it landed.',
+    },
+
     // A precomputed bridge between the two styles (what the AI would generate).
     connectionBridge: {
       dynamic:

@@ -3,6 +3,8 @@ import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from './AuthContext';
 import { buildDemoData } from '../services/demoData';
+import { isAIConfigured } from '../services/aiService';
+import { generateConnectionBridge } from '../services/insightService';
 
 export const AppContext = createContext();
 
@@ -57,7 +59,12 @@ export const AppProvider = ({ children }) => {
     selfInsight: null,
     partnerInsight: null,
     connectionBridge: null,
+    // Live slice of your partner's world, synced from the shared relationship doc
+    // when you're paired: their name, love language, mood, latest check-in, insight card.
+    partnerSync: null,
   });
+  // The shared relationships/{id} doc both partners read/write once paired.
+  const [relationshipId, setRelationshipId] = useState(null);
 
   // Guards against the save-on-load echo: skip the save that a snapshot triggers.
   const fromSnapshot = useRef(false);
@@ -77,6 +84,7 @@ export const AppProvider = ({ children }) => {
           fromSnapshot.current = true;
           setRelationshipData((prev) => ({ ...prev, ...data.relationshipData }));
         }
+        setRelationshipId(data.relationshipId || null);
       }
       setIsLoaded(true);
     }, (error) => {
@@ -108,6 +116,112 @@ export const AppProvider = ({ children }) => {
 
     saveData();
   }, [relationshipData, currentUser, isLoaded]);
+
+  // --- Partner sync (paired couples) -------------------------------------
+  // Subscribe to the shared relationship doc: pull in the OTHER partner's
+  // published slice and the shared connection bridge. Only updates state when
+  // something actually changed, so it can't ping-pong with the publish effect.
+  useEffect(() => {
+    if (demoMode || !currentUser || !relationshipId) return;
+
+    const unsubscribe = onSnapshot(doc(db, 'relationships', relationshipId), (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      const partners = data.partners || {};
+      const other = Object.entries(partners).find(([uid]) => uid !== currentUser.uid)?.[1] || null;
+
+      setRelationshipData((prev) => {
+        let changed = false;
+        const next = { ...prev };
+
+        if (other && JSON.stringify(prev.partnerSync) !== JSON.stringify(other)) {
+          next.partnerSync = other;
+          next.profile = {
+            ...prev.profile,
+            partnerName: other.name || prev.profile?.partnerName,
+            partnerLoveLanguage: other.loveLanguage || prev.profile?.partnerLoveLanguage,
+          };
+          if (other.insightCard) {
+            next.partnerInsight = { dominant: other.attachmentStyle, card: other.insightCard };
+          }
+          changed = true;
+        }
+
+        if (
+          data.connectionBridge &&
+          JSON.stringify(data.connectionBridge) !== JSON.stringify(prev.connectionBridge)
+        ) {
+          next.connectionBridge = data.connectionBridge;
+          changed = true;
+        }
+
+        return changed ? next : prev;
+      });
+    }, (error) => {
+      console.error('Error syncing relationship:', error);
+    });
+
+    return unsubscribe;
+  }, [currentUser, relationshipId, demoMode]);
+
+  // Publish YOUR partner-facing slice to the shared doc whenever it changes.
+  // lastPublished guards against redundant writes (and write loops).
+  const lastPublished = useRef('');
+  useEffect(() => {
+    if (demoMode || !currentUser || !relationshipId || !isLoaded) return;
+
+    const p = relationshipData.profile || {};
+    const history = relationshipData.checkInHistory || [];
+    const openCommitment = (relationshipData.repairCommitments || []).find((c) => !c.done);
+    const slice = {
+      name: p.yourName || '',
+      loveLanguage: p.yourLoveLanguage || '',
+      mood: p.yourMood || '',
+      cupFullness: p.cupFullness ?? null,
+      lastCheckIn: relationshipData.lastCheckIn || null,
+      latestCheckIn: history.length ? history[history.length - 1] : null,
+      attachmentStyle: relationshipData.selfInsight?.dominant || null,
+      insightCard: relationshipData.selfInsight?.card || null,
+      commitment: openCommitment?.text || null,
+    };
+
+    const json = JSON.stringify(slice);
+    if (json === lastPublished.current) return;
+    lastPublished.current = json;
+
+    setDoc(
+      doc(db, 'relationships', relationshipId),
+      { partners: { [currentUser.uid]: slice }, updatedAt: new Date() },
+      { merge: true }
+    ).catch((error) => console.error('Error publishing to relationship:', error));
+  }, [relationshipData, currentUser, relationshipId, demoMode, isLoaded]);
+
+  // When BOTH partners have completed Understanding Me and there's no bridge
+  // yet, one device generates the AI Connection Bridge and shares it.
+  const bridgeBusy = useRef(false);
+  useEffect(() => {
+    if (demoMode || !currentUser || !relationshipId) return;
+    if (relationshipData.connectionBridge || bridgeBusy.current || !isAIConfigured()) return;
+
+    const mine = relationshipData.selfInsight;
+    const theirs = relationshipData.partnerSync;
+    if (!mine?.card || !theirs?.insightCard) return;
+
+    bridgeBusy.current = true;
+    (async () => {
+      try {
+        const bridge = await generateConnectionBridge(
+          { dominant: mine.dominant, yourName: relationshipData.profile?.yourName, freeText: mine.freeText },
+          { dominant: theirs.attachmentStyle, yourName: theirs.name }
+        );
+        await setDoc(doc(db, 'relationships', relationshipId), { connectionBridge: bridge }, { merge: true });
+      } catch (error) {
+        console.error('Bridge generation failed:', error);
+        bridgeBusy.current = false; // allow retry on next change
+      }
+    })();
+  }, [relationshipData, currentUser, relationshipId, demoMode]);
+  // ------------------------------------------------------------------------
 
   const goToPage = useCallback((page) => {
     setCurrentPage(page);
@@ -288,6 +402,8 @@ export const AppProvider = ({ children }) => {
     demoMode,
     loadDemoData,
     exitDemo,
+    relationshipId,
+    isPaired: Boolean(relationshipId),
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

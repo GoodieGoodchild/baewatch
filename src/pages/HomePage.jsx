@@ -119,6 +119,7 @@ export const HomePage = ({ onNavigate }) => {
   const activeCommitment = (relationshipData.repairCommitments || []).find((c) => !c.done);
   const selfInsight = relationshipData.selfInsight;
   const bridge = relationshipData.connectionBridge;
+  const partnerCheckIn = relationshipData.partnerSync?.latestCheckIn;
   const llReminder = partnerReminder(profile.partnerName, profile.partnerLoveLanguage);
   const [repairDismissed, setRepairDismissed] = useState(false);
 
@@ -270,6 +271,36 @@ export const HomePage = ({ onNavigate }) => {
             </Button>
           </Card>
         </motion.div>
+
+        {/* Partner's latest check-in — synced live from their device */}
+        {partnerCheckIn && (
+          <motion.div variants={itemVariants}>
+            <Card variant="light">
+              <p className="text-xs font-semibold text-bae-coral mb-2">
+                💌 {partnerName.toUpperCase()} CHECKED IN
+                {partnerCheckIn.date ? ` · ${partnerCheckIn.date}` : ''}
+              </p>
+              <p className="text-sm font-semibold text-bae-navy">
+                Feeling {partnerCheckIn.moodLabel || partnerCheckIn.stateId}
+              </p>
+              {partnerCheckIn.note && (
+                <p className="text-sm text-bae-navy/70 italic mt-1">"{partnerCheckIn.note}"</p>
+              )}
+              {partnerCheckIn.needs?.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {partnerCheckIn.needs.map((n) => (
+                    <span key={n} className="text-[11px] font-medium bg-bae-peach text-bae-navy px-2.5 py-1 rounded-full">
+                      {n}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-bae-navy/50 mt-2">
+                This is how to show up for {partnerName} today.
+              </p>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Connection Bridge — how two attachment styles can meet in the middle */}
         {bridge && (

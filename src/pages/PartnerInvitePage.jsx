@@ -5,7 +5,7 @@ import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import { Copy, Check } from 'lucide-react';
 import { db } from '../firebase';
-import { collection, addDoc, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, updateDoc, setDoc, doc } from 'firebase/firestore';
 
 export const PartnerInvitePage = ({ initialInviteCode, onComplete }) => {
   const { currentUser } = useAuth();
@@ -84,6 +84,11 @@ export const PartnerInvitePage = ({ initialInviteCode, onComplete }) => {
           usedAt: new Date(),
           relationshipId: relationshipRef.id,
         });
+
+        // Point BOTH partners' user docs at the shared relationship so each
+        // device picks up the live sync (AppContext subscribes via this id).
+        await setDoc(doc(db, 'users', currentUser.uid), { relationshipId: relationshipRef.id }, { merge: true });
+        await setDoc(doc(db, 'users', inviteData.inviterId), { relationshipId: relationshipRef.id }, { merge: true });
 
         setSuccessMessage('You are now connected!');
         onComplete?.();
