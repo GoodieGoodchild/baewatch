@@ -1,4 +1,4 @@
-import React, { createContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useState, useCallback, useEffect, useRef } from 'react';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from './AuthContext';
@@ -13,8 +13,9 @@ const getCurrentWeekString = () => {
 };
 
 export const AppProvider = ({ children }) => {
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
   const [currentPage, setCurrentPage] = useState('splash');
+  const [isLoaded, setIsLoaded] = useState(false);
   const [relationshipData, setRelationshipData] = useState({
     profile: {
       yourName: '',
@@ -45,45 +46,47 @@ export const AppProvider = ({ children }) => {
     dailyAnswers: {},
     bucketList: [],
     repairCommitments: [],
+    selfInsight: null,
   });
 
-  // Load data from Firestore on user login
+  // Guards against the save-on-load echo: skip the save that a snapshot triggers.
+  const fromSnapshot = useRef(false);
+
+  // Real-time sync with Firestore for the logged-in user.
   useEffect(() => {
-    if (!user) return;
+    if (!currentUser) {
+      setIsLoaded(false);
+      return;
+    }
 
-    const loadData = async () => {
-      try {
-        const docRef = doc(db, 'users', user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setRelationshipData(data.relationshipData || relationshipData);
+    const unsubscribe = onSnapshot(doc(db, 'users', currentUser.uid), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.relationshipData) {
+          fromSnapshot.current = true;
+          setRelationshipData((prev) => ({ ...prev, ...data.relationshipData }));
         }
-      } catch (error) {
-        console.error('Error loading data:', error);
       }
-    };
-
-    loadData();
-
-    // Set up real-time listener
-    const unsubscribe = onSnapshot(doc(db, 'users', user.uid), (doc) => {
-      if (doc.exists()) {
-        const data = doc.data();
-        setRelationshipData(data.relationshipData || relationshipData);
-      }
+      setIsLoaded(true);
+    }, (error) => {
+      console.error('Error loading data:', error);
+      setIsLoaded(true);
     });
 
     return unsubscribe;
-  }, [user]);
+  }, [currentUser]);
 
-  // Save data to Firestore when relationshipData changes
+  // Persist changes — but not the change that came from a snapshot.
   useEffect(() => {
-    if (!user) return;
+    if (!currentUser || !isLoaded) return;
+    if (fromSnapshot.current) {
+      fromSnapshot.current = false;
+      return;
+    }
 
     const saveData = async () => {
       try {
-        await setDoc(doc(db, 'users', user.uid), {
+        await setDoc(doc(db, 'users', currentUser.uid), {
           relationshipData,
           updatedAt: new Date(),
         }, { merge: true });
@@ -93,7 +96,7 @@ export const AppProvider = ({ children }) => {
     };
 
     saveData();
-  }, [relationshipData, user]);
+  }, [relationshipData, currentUser, isLoaded]);
 
   const goToPage = useCallback((page) => {
     setCurrentPage(page);
@@ -219,11 +222,20 @@ export const AppProvider = ({ children }) => {
     }));
   }, []);
 
+  // Stores the "Understanding Me" result: attachment style, trauma responses,
+  // neurodivergence context, and the AI-generated partner translation card.
+  const saveSelfInsight = useCallback((insight) => {
+    setRelationshipData((prev) => ({
+      ...prev,
+      selfInsight: { ...(prev.selfInsight || {}), ...insight, updatedAt: new Date().toISOString() },
+    }));
+  }, []);
+
   const value = {
     currentPage,
     goToPage,
     relationshipData,
-    isLoaded: true,
+    isLoaded,
     updateConnectionLevel,
     addMemory,
     deleteMemory,
@@ -239,6 +251,7 @@ export const AppProvider = ({ children }) => {
     deleteBucketItem,
     addRepairCommitment,
     dismissRepairCommitment,
+    saveSelfInsight,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

@@ -116,6 +116,7 @@ export const HomePage = ({ onNavigate }) => {
 
   const showRepairBanner = relationshipData.weatherMood === 'rainy' || (relationshipData.connectionLevel ?? 72) < 50;
   const activeCommitment = (relationshipData.repairCommitments || []).find((c) => !c.done);
+  const selfInsight = relationshipData.selfInsight;
   const [repairDismissed, setRepairDismissed] = useState(false);
 
   const activeBucketItems = bucketList.filter((i) => !i.completed);
@@ -231,6 +232,33 @@ export const HomePage = ({ onNavigate }) => {
             cupFullness={cupFullness}
             mood={relationshipData.weatherMood}
           />
+        </motion.div>
+
+        {/* Understanding Me — attachment & trauma self-insight */}
+        <motion.div variants={itemVariants}>
+          <Card variant="gradient">
+            <div className="flex items-start gap-3">
+              <span className="text-3xl flex-shrink-0">🪞</span>
+              <div className="flex-1">
+                <h3 className="text-base font-semibold text-bae-navy">
+                  {selfInsight?.card ? 'Your love map' : 'Understand yourself first'}
+                </h3>
+                <p className="text-xs text-bae-navy/60 mt-0.5">
+                  {selfInsight?.card
+                    ? selfInsight.card.headline
+                    : 'Discover your attachment style and help your partner understand how you love.'}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="primary"
+              size="sm"
+              className="w-full mt-3"
+              onClick={() => onNavigate?.('understanding-me')}
+            >
+              {selfInsight?.card ? 'View my card' : 'Begin'}
+            </Button>
+          </Card>
         </motion.div>
 
         {/* Repair Banner */}
