@@ -243,6 +243,12 @@ export const HomePage = ({ onNavigate }) => {
             cupFullness={cupFullness}
             mood={relationshipData.weatherMood}
           />
+          <button
+            onClick={() => onNavigate?.('insights')}
+            className="w-full mt-2 text-center text-sm font-semibold text-bae-coral py-2 hover:bg-bae-peach/20 rounded-xl transition"
+          >
+            📊 View Insights & Health Score →
+          </button>
         </motion.div>
 
         {/* Understanding Me — attachment & trauma self-insight */}
