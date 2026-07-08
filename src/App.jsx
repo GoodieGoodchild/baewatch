@@ -16,6 +16,7 @@ import DailyQuestionPage from './pages/DailyQuestionPage';
 import BucketListPage from './pages/BucketListPage';
 import RepairPage from './pages/RepairPage';
 import UnderstandingMePage from './pages/UnderstandingMePage';
+import LoveLanguagesPage from './pages/LoveLanguagesPage';
 import { AppProvider, useApp } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import './App.css';
@@ -131,6 +132,8 @@ function AppContent() {
         <RepairPage key="repair" onNavigate={handleNavigate} />
       ) : currentPage === 'understanding-me' ? (
         <UnderstandingMePage key="understanding-me" onNavigate={handleNavigate} />
+      ) : currentPage === 'love-languages' ? (
+        <LoveLanguagesPage key="love-languages" onNavigate={handleNavigate} />
       ) : null}
     </AnimatePresence>
   );

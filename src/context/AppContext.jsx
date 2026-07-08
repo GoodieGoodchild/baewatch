@@ -23,10 +23,14 @@ export const AppProvider = ({ children }) => {
       nickname: 'your person',
       relationshipStage: 'together',
       relationshipLength: '',
-      partnerNeed: 'Emotional support',
-      supportPreference: 'Quality time',
-      currentMood: 'Needs connection',
+      // About YOU — captured in onboarding, never guessed about your partner.
+      yourMood: '',
+      yourNeed: '',
+      yourLoveLanguage: '',
       cupFullness: 72,
+      // What you've learned about your partner (their own primary love language,
+      // ideally synced from their device; can also be noted on the Love Languages page).
+      partnerLoveLanguage: '',
       partnerNotes: '',
     },
     connectionLevel: 72,
@@ -135,19 +139,27 @@ export const AppProvider = ({ children }) => {
     setRelationshipData((prev) => ({ ...prev, weatherMood: mood }));
   }, []);
 
-  const recordCheckIn = useCallback(({ stateId, cupFullness, connectionLevel }) => {
-    const dateStr = new Date().toISOString().slice(0, 10);
-    setRelationshipData((prev) => {
-      const newCheckIn = { date: dateStr, stateId, cupFullness, connectionLevel };
-      const newConnPoint = { date: dateStr, value: connectionLevel };
-      return {
-        ...prev,
-        lastCheckIn: dateStr,
-        checkInHistory: [...(prev.checkInHistory || []), newCheckIn].slice(-60),
-        connectionLevelHistory: [...(prev.connectionLevelHistory || []), newConnPoint].slice(-14),
-      };
-    });
-  }, []);
+  const recordCheckIn = useCallback(
+    ({ stateId, moodLabel, weatherMood, cupFullness, connectionLevel, note, needs }) => {
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const timestamp = new Date().toISOString();
+      setRelationshipData((prev) => {
+        const newCheckIn = { date: dateStr, timestamp, stateId, moodLabel, cupFullness, connectionLevel, note, needs };
+        const newConnPoint = { date: dateStr, value: connectionLevel };
+        return {
+          ...prev,
+          lastCheckIn: dateStr,
+          // A personal check-in updates the shared weather + your own cup.
+          weatherMood: weatherMood ?? prev.weatherMood,
+          connectionLevel: connectionLevel ?? prev.connectionLevel,
+          profile: { ...prev.profile, yourMood: stateId ?? prev.profile?.yourMood, cupFullness: cupFullness ?? prev.profile?.cupFullness },
+          checkInHistory: [...(prev.checkInHistory || []), newCheckIn].slice(-60),
+          connectionLevelHistory: [...(prev.connectionLevelHistory || []), newConnPoint].slice(-14),
+        };
+      });
+    },
+    []
+  );
 
   const dismissWeeklyRecap = useCallback(() => {
     setRelationshipData((prev) => ({

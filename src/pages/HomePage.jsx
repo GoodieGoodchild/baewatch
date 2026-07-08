@@ -9,6 +9,7 @@ import ConnectionLevelWidget from '../components/widgets/ConnectionLevelWidget';
 import InsightCard from '../components/cards/InsightCard';
 import { Heart, Zap, TrendingUp, Edit, X, CheckCircle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { partnerReminder } from '../services/loveLanguages';
 
 const questions = [
   "What made you feel most loved this week?",
@@ -117,6 +118,7 @@ export const HomePage = ({ onNavigate }) => {
   const showRepairBanner = relationshipData.weatherMood === 'rainy' || (relationshipData.connectionLevel ?? 72) < 50;
   const activeCommitment = (relationshipData.repairCommitments || []).find((c) => !c.done);
   const selfInsight = relationshipData.selfInsight;
+  const llReminder = partnerReminder(profile.partnerName, profile.partnerLoveLanguage);
   const [repairDismissed, setRepairDismissed] = useState(false);
 
   const activeBucketItems = bucketList.filter((i) => !i.completed);
@@ -259,6 +261,36 @@ export const HomePage = ({ onNavigate }) => {
               {selfInsight?.card ? 'View my card' : 'Begin'}
             </Button>
           </Card>
+        </motion.div>
+
+        {/* Love-language reminder — how to love your partner THEIR way */}
+        <motion.div variants={itemVariants}>
+          {llReminder ? (
+            <Card variant="peach" onClick={() => onNavigate?.('love-languages')} className="cursor-pointer">
+              <div className="flex items-start gap-3">
+                <span className="text-3xl flex-shrink-0">{llReminder.emoji}</span>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-bae-navy">{llReminder.headline}</p>
+                  <p className="text-xs text-bae-navy/70 mt-1">💡 Today: {llReminder.tip}</p>
+                </div>
+              </div>
+            </Card>
+          ) : (
+            <Card variant="light">
+              <div className="flex items-start gap-3">
+                <span className="text-3xl flex-shrink-0">💞</span>
+                <div className="flex-1">
+                  <h3 className="text-base font-semibold text-bae-navy">Speak their love language</h3>
+                  <p className="text-xs text-bae-navy/60 mt-0.5">
+                    Learn the 5 love languages and set how you each feel most loved.
+                  </p>
+                </div>
+              </div>
+              <Button variant="primary" size="sm" className="w-full mt-3" onClick={() => onNavigate?.('love-languages')}>
+                Explore love languages
+              </Button>
+            </Card>
+          )}
         </motion.div>
 
         {/* Repair Banner */}
