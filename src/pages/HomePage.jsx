@@ -80,7 +80,7 @@ const moodEmojis = {
 
 export const HomePage = ({ onNavigate }) => {
   const [activeTab, setActiveTab] = useState('home');
-  const { relationshipData, dismissWeeklyRecap, dismissRepairCommitment } = useApp();
+  const { relationshipData, dismissWeeklyRecap, dismissRepairCommitment, demoMode, exitDemo } = useApp();
   const profile = relationshipData.profile || {};
   const partnerName = profile.partnerName || 'your person';
   const cupFullness = profile.cupFullness ?? 72;
@@ -118,6 +118,7 @@ export const HomePage = ({ onNavigate }) => {
   const showRepairBanner = relationshipData.weatherMood === 'rainy' || (relationshipData.connectionLevel ?? 72) < 50;
   const activeCommitment = (relationshipData.repairCommitments || []).find((c) => !c.done);
   const selfInsight = relationshipData.selfInsight;
+  const bridge = relationshipData.connectionBridge;
   const llReminder = partnerReminder(profile.partnerName, profile.partnerLoveLanguage);
   const [repairDismissed, setRepairDismissed] = useState(false);
 
@@ -159,6 +160,13 @@ export const HomePage = ({ onNavigate }) => {
       variants={containerVariants}
     >
       <SafetyHeader showNotification={true} />
+
+      {demoMode && (
+        <div className="bg-bae-navy text-white text-xs px-4 py-2 flex items-center justify-between">
+          <span>👀 Sample couple — Sam &amp; Maya, one month in</span>
+          <button onClick={exitDemo} className="underline font-medium">Exit demo</button>
+        </div>
+      )}
 
       <div className="max-w-md mx-auto px-4 py-6 space-y-6">
         <motion.div variants={itemVariants} className="text-center mt-6">
@@ -262,6 +270,36 @@ export const HomePage = ({ onNavigate }) => {
             </Button>
           </Card>
         </motion.div>
+
+        {/* Connection Bridge — how two attachment styles can meet in the middle */}
+        {bridge && (
+          <motion.div variants={itemVariants}>
+            <Card variant="gradient">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-2xl">🌉</span>
+                <h3 className="text-base font-bold text-bae-navy">Your Connection Bridge</h3>
+              </div>
+              <p className="text-sm text-bae-navy/75 mb-3">{bridge.dynamic}</p>
+              <div className="space-y-2">
+                <div className="bg-white/60 rounded-xl p-3">
+                  <p className="text-xs font-semibold text-bae-coral mb-0.5">FOR YOU</p>
+                  <p className="text-sm text-bae-navy/80">{bridge.forA}</p>
+                </div>
+                <div className="bg-white/60 rounded-xl p-3">
+                  <p className="text-xs font-semibold text-bae-coral mb-0.5">
+                    FOR {(profile.partnerName || 'THEM').toUpperCase()}
+                  </p>
+                  <p className="text-sm text-bae-navy/80">{bridge.forB}</p>
+                </div>
+                <div className="bg-white/60 rounded-xl p-3">
+                  <p className="text-xs font-semibold text-bae-coral mb-0.5">TRY TOGETHER</p>
+                  <p className="text-sm text-bae-navy/80">{bridge.sharedRitual}</p>
+                </div>
+              </div>
+              <p className="text-xs text-bae-navy/60 italic mt-3">💛 {bridge.reframe}</p>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Love-language reminder — how to love your partner THEIR way */}
         <motion.div variants={itemVariants}>

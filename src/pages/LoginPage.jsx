@@ -5,7 +5,7 @@ import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import { Heart, Mail, Lock } from 'lucide-react';
 
-export const LoginPage = ({ onSwitchToSignup }) => {
+export const LoginPage = ({ onSwitchToSignup, onExploreDemo }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -111,6 +111,22 @@ export const LoginPage = ({ onSwitchToSignup }) => {
             </button>
           </p>
         </div>
+
+        {onExploreDemo && (
+          <div className="pt-2">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-1 h-px bg-bae-peach" />
+              <span className="text-xs text-bae-navy/40">or</span>
+              <div className="flex-1 h-px bg-bae-peach" />
+            </div>
+            <Button variant="outline" className="w-full" onClick={onExploreDemo}>
+              👀 Explore a sample couple
+            </Button>
+            <p className="text-center text-xs text-bae-navy/40 mt-2">
+              See Sam &amp; Maya's journey — one month in, no sign-up needed
+            </p>
+          </div>
+        )}
       </motion.div>
     </motion.div>
   );

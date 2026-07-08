@@ -23,7 +23,7 @@ import './App.css';
 
 function AppContent() {
   const { currentUser } = useAuth();
-  const { updateProfile, relationshipData, isLoaded } = useApp();
+  const { updateProfile, relationshipData, isLoaded, demoMode, loadDemoData } = useApp();
   const [currentPage, setCurrentPage] = useState('splash');
   const [authMode, setAuthMode] = useState('login'); // 'login' or 'signup'
   const [appReady, setAppReady] = useState(false);
@@ -81,6 +81,11 @@ function AppContent() {
     setCurrentPage(hasOnboarded ? 'home' : 'onboarding');
   };
 
+  const handleExploreDemo = () => {
+    loadDemoData();
+    setCurrentPage('home');
+  };
+
   if (!appReady || (currentUser && !isLoaded)) {
     return (
       <AnimatePresence mode="wait">
@@ -93,7 +98,11 @@ function AppContent() {
     <AnimatePresence mode="wait">
       {currentPage === 'auth' ? (
         authMode === 'login' ? (
-          <LoginPage key="login" onSwitchToSignup={() => switchAuthMode('signup')} />
+          <LoginPage
+            key="login"
+            onSwitchToSignup={() => switchAuthMode('signup')}
+            onExploreDemo={handleExploreDemo}
+          />
         ) : (
           <SignupPage
             key="signup"

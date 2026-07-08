@@ -2,6 +2,7 @@ import React, { createContext, useState, useCallback, useEffect, useRef } from '
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from './AuthContext';
+import { buildDemoData } from '../services/demoData';
 
 export const AppContext = createContext();
 
@@ -16,6 +17,9 @@ export const AppProvider = ({ children }) => {
   const { currentUser } = useAuth();
   const [currentPage, setCurrentPage] = useState('splash');
   const [isLoaded, setIsLoaded] = useState(false);
+  // Demo mode: explore a fully-populated sample couple without signing in.
+  // While active, Firestore sync is bypassed so nothing is written to a real account.
+  const [demoMode, setDemoMode] = useState(false);
   const [relationshipData, setRelationshipData] = useState({
     profile: {
       yourName: '',
@@ -51,6 +55,8 @@ export const AppProvider = ({ children }) => {
     bucketList: [],
     repairCommitments: [],
     selfInsight: null,
+    partnerInsight: null,
+    connectionBridge: null,
   });
 
   // Guards against the save-on-load echo: skip the save that a snapshot triggers.
@@ -58,6 +64,7 @@ export const AppProvider = ({ children }) => {
 
   // Real-time sync with Firestore for the logged-in user.
   useEffect(() => {
+    if (demoMode) return; // demo data lives only in memory
     if (!currentUser) {
       setIsLoaded(false);
       return;
@@ -78,11 +85,11 @@ export const AppProvider = ({ children }) => {
     });
 
     return unsubscribe;
-  }, [currentUser]);
+  }, [currentUser, demoMode]);
 
   // Persist changes — but not the change that came from a snapshot.
   useEffect(() => {
-    if (!currentUser || !isLoaded) return;
+    if (demoMode || !currentUser || !isLoaded) return;
     if (fromSnapshot.current) {
       fromSnapshot.current = false;
       return;
@@ -236,6 +243,20 @@ export const AppProvider = ({ children }) => {
 
   // Stores the "Understanding Me" result: attachment style, trauma responses,
   // neurodivergence context, and the AI-generated partner translation card.
+  // Loads the sample couple into memory and flips on demo mode so the whole app
+  // is explorable without an account.
+  const loadDemoData = useCallback(() => {
+    setDemoMode(true);
+    setIsLoaded(true);
+    setRelationshipData((prev) => ({ ...prev, ...buildDemoData() }));
+  }, []);
+
+  const exitDemo = useCallback(() => {
+    // Cleanest way back to a real, empty session is a fresh reload.
+    if (typeof window !== 'undefined') window.location.reload();
+    setDemoMode(false);
+  }, []);
+
   const saveSelfInsight = useCallback((insight) => {
     setRelationshipData((prev) => ({
       ...prev,
@@ -264,6 +285,9 @@ export const AppProvider = ({ children }) => {
     addRepairCommitment,
     dismissRepairCommitment,
     saveSelfInsight,
+    demoMode,
+    loadDemoData,
+    exitDemo,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
