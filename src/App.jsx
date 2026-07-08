@@ -86,12 +86,12 @@ function AppContent() {
     setCurrentPage('home');
   };
 
-  if (!appReady || (currentUser && !isLoaded)) {
-    return (
-      <AnimatePresence mode="wait">
-        <SplashScreen key="splash" onComplete={handleSplashComplete} />
-      </AnimatePresence>
-    );
+  // Splash renders OUTSIDE AnimatePresence: its continuous animations can stall
+  // framer's mode="wait" exit tracking and strand the app on the splash screen.
+  // A hard swap here is invisible anyway (both screens share the same palette).
+  const showSplash = !appReady || (currentUser && !isLoaded);
+  if (showSplash) {
+    return <SplashScreen onComplete={handleSplashComplete} />;
   }
 
   return (

@@ -1,12 +1,15 @@
-﻿import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import SafetyHeader from '../components/common/SafetyHeader';
 import BottomNavigation from '../components/common/BottomNavigation';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
-import { Heart, Star, Trophy, Gamepad2 } from 'lucide-react';
+import { Heart, Star, Trophy, Gamepad2, Sparkles, RefreshCw } from 'lucide-react';
+import { useApp } from '../context/AppContext';
+import { isAIConfigured } from '../services/aiService';
+import { generateLoveQuestion, polishGratitudeNote } from '../services/funService';
 
-const loveQuestions = [
+const baseLoveQuestions = [
   'What small thing did I do recently that made you feel loved?',
   'What does relationship support look like for you this week?',
   'What is one dream you want us to chase together?',
@@ -14,22 +17,13 @@ const loveQuestions = [
   'What do you think I admire most about you?',
 ];
 
-const partnerQuiz = [
-  {
-    question: 'What is my favorite cozy activity?',
-    options: ['Movie night', 'Cook together', 'Take a walk', 'Play board games'],
-    tip: 'After answering, ask your partner if they agreed with your choice.',
-  },
-  {
-    question: 'Which compliment would make me the happiest?',
-    options: ['You are so thoughtful', 'I love your laugh', 'You are amazing', 'You make my day better'],
-    tip: 'Compare your answers and celebrate the match.',
-  },
-  {
-    question: 'What date idea would I choose next?',
-    options: ['Beach escape', 'Mountain cabin', 'City adventure', 'Road trip'],
-    tip: 'Use this to plan your next sweet surprise.',
-  },
+// Guess-then-ask: there are no "correct" answers stored in an app — your
+// partner is the answer key. You guess, then ask them and score it together.
+const partnerQuizBase = [
+  { question: 'What would {partner} pick as the perfect cozy activity?', options: ['Movie night', 'Cooking together', 'A long walk', 'Board games'] },
+  { question: 'Which compliment would light {partner} up the most?', options: ['"You make me feel safe"', '"I love your laugh"', '"I\'m proud of you"', '"You make my day better"'] },
+  { question: 'What date would {partner} choose next?', options: ['Beach escape', 'Mountain cabin', 'City adventure', 'Road trip'] },
+  { question: 'When {partner} has a hard day, what do they secretly want first?', options: ['A hug, no words', 'To vent it all out', 'A distraction & laughter', 'Quiet company'] },
 ];
 
 const gratitudePrompts = [
@@ -39,36 +33,39 @@ const gratitudePrompts = [
 ];
 
 export const GamesPage = ({ onNavigate }) => {
+  const { relationshipData } = useApp();
+  const profile = relationshipData.profile || {};
+  const partnerName = profile.partnerName || 'your partner';
+  const couple = {
+    profile,
+    selfInsight: relationshipData.selfInsight,
+    partnerInsight: relationshipData.partnerInsight,
+  };
+
   const [currentGame, setCurrentGame] = useState(null);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState([]);
   const [selectedOption, setSelectedOption] = useState('');
-  const [quizScore, setQuizScore] = useState(0);
+  const [matches, setMatches] = useState([]); // self-reported after asking partner
   const [gratitudeAnswers, setGratitudeAnswers] = useState(['', '', '']);
+  const [polished, setPolished] = useState([null, null, null]);
   const [showResults, setShowResults] = useState(false);
 
+  // AI state
+  const [loveDeck, setLoveDeck] = useState(baseLoveQuestions);
+  const [baeSpark, setBaeSpark] = useState('');
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState('');
+
+  const partnerQuiz = partnerQuizBase.map((q) => ({
+    ...q,
+    question: q.question.replace('{partner}', partnerName),
+  }));
+
   const games = [
-    {
-      id: 'love-questions',
-      title: 'Love Questions',
-      description: 'Ask meaningful questions that spark deep conversation',
-      icon: Heart,
-      color: 'from-pink-200 to-rose-200',
-    },
-    {
-      id: 'partner-quiz',
-      title: 'Partner Quiz',
-      description: 'Guess each other’s favorites and compare answers',
-      icon: Star,
-      color: 'from-purple-200 to-indigo-200',
-    },
-    {
-      id: 'gratitude-challenge',
-      title: 'Gratitude Challenge',
-      description: 'Write appreciation notes that brighten your partner’s day',
-      icon: Trophy,
-      color: 'from-yellow-200 to-orange-200',
-    },
+    { id: 'love-questions', title: 'Love Questions', description: 'Meaningful questions to spark deep conversation — Bae invents new ones just for you two', icon: Heart, color: 'from-pink-200 to-rose-200' },
+    { id: 'partner-quiz', title: `How Well Do You Know ${partnerName}?`, description: 'Guess, then ask them — they are the answer key', icon: Star, color: 'from-purple-200 to-indigo-200' },
+    { id: 'gratitude-challenge', title: 'Gratitude Challenge', description: `Write appreciation notes — Bae tunes them to ${partnerName}'s love language`, icon: Trophy, color: 'from-yellow-200 to-orange-200' },
   ];
 
   const resetGame = () => {
@@ -76,9 +73,13 @@ export const GamesPage = ({ onNavigate }) => {
     setQuestionIndex(0);
     setAnswers([]);
     setSelectedOption('');
-    setQuizScore(0);
+    setMatches([]);
     setGratitudeAnswers(['', '', '']);
+    setPolished([null, null, null]);
     setShowResults(false);
+    setLoveDeck(baseLoveQuestions);
+    setBaeSpark('');
+    setAiError('');
   };
 
   const handleStartGame = (gameId) => {
@@ -86,20 +87,47 @@ export const GamesPage = ({ onNavigate }) => {
     setCurrentGame(gameId);
   };
 
+  const askBaeForQuestion = async () => {
+    setAiBusy(true);
+    setAiError('');
+    try {
+      const res = await generateLoveQuestion(couple, loveDeck);
+      setLoveDeck((deck) => {
+        const next = [...deck];
+        next.splice(questionIndex + 1, 0, res.question);
+        return next;
+      });
+      setBaeSpark(res.spark || '');
+      setQuestionIndex((i) => i + 1);
+    } catch (e) {
+      setAiError('Bae is napping — try again in a moment.');
+    }
+    setAiBusy(false);
+  };
+
+  const polishNote = async (idx) => {
+    if (!gratitudeAnswers[idx]?.trim()) return;
+    setAiBusy(true);
+    setAiError('');
+    try {
+      const res = await polishGratitudeNote({
+        note: gratitudeAnswers[idx],
+        partnerName: profile.partnerName,
+        partnerLoveLanguage: profile.partnerLoveLanguage,
+      });
+      setPolished((prev) => prev.map((p, i) => (i === idx ? res : p)));
+    } catch (e) {
+      setAiError('Bae is napping — try again in a moment.');
+    }
+    setAiBusy(false);
+  };
+
   const handleLoveAnswer = () => {
-    const answer = answers[questionIndex] || 'I want to ask my partner this together.';
-    setAnswers((prev) => {
-      const next = [...prev];
-      next[questionIndex] = answer;
-      return next;
-    });
+    setBaeSpark('');
     setQuestionIndex((prev) => prev + 1);
   };
 
-  const handleQuizSubmit = () => {
-    const correctAnswers = ['Cook together', 'You are so thoughtful', 'Beach escape'];
-    const currentCorrect = selectedOption === correctAnswers[questionIndex] ? 1 : 0;
-    setQuizScore((prev) => prev + currentCorrect);
+  const handleQuizGuess = () => {
     setAnswers((prev) => [...prev, selectedOption]);
     setSelectedOption('');
     if (questionIndex < partnerQuiz.length - 1) {
@@ -109,44 +137,46 @@ export const GamesPage = ({ onNavigate }) => {
     }
   };
 
-  const handleGratitudeChange = (index, value) => {
-    const next = [...gratitudeAnswers];
-    next[index] = value;
-    setGratitudeAnswers(next);
-  };
+  const toggleMatch = (idx) =>
+    setMatches((prev) => (prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]));
 
   const loveQuestionContent = () => {
-    const finished = questionIndex >= loveQuestions.length;
-
+    const finished = questionIndex >= loveDeck.length;
     return (
       <Card variant="peach">
         <div>
           <div className="text-center mb-4">
             <Gamepad2 className="w-12 h-12 text-bae-coral mx-auto mb-3" />
             <h3 className="text-xl font-bold text-bae-navy mb-2">Love Questions</h3>
-            <p className="text-bae-navy/70">Answer questions that invite your partner into a richer conversation.</p>
+            <p className="text-bae-navy/70 text-sm">Take turns asking each other out loud — that's where the magic is.</p>
           </div>
 
           {finished ? (
             <div className="space-y-4">
-              <p className="text-bae-navy font-semibold">Round complete!</p>
-              <p className="text-bae-navy/70">Share these answers with your partner and ask them to answer the same questions.</p>
-              <div className="space-y-3">
-                {loveQuestions.map((question, idx) => (
-                  <div key={question} className="rounded-3xl border border-bae-peach/50 bg-white p-4">
-                    <p className="text-sm text-bae-navy/70 mb-2">{question}</p>
-                    <p className="text-base text-bae-navy font-semibold">{answers[idx] || 'No answer yet'}</p>
-                  </div>
-                ))}
-              </div>
+              <p className="text-bae-navy font-semibold text-center">Round complete! 💛</p>
+              <p className="text-bae-navy/70 text-sm text-center">
+                {answers.filter(Boolean).length > 0 ? 'Look back at what you wrote and share your favourite answer with each other.' : 'Play again anytime — Bae never runs out of questions.'}
+              </p>
               <Button variant="secondary" className="w-full" onClick={resetGame}>
                 Play another round
               </Button>
             </div>
           ) : (
             <div className="space-y-4">
-              <p className="text-sm text-bae-navy/70">Question {questionIndex + 1} of {loveQuestions.length}</p>
-              <p className="text-lg font-semibold text-bae-navy">{loveQuestions[questionIndex]}</p>
+              <p className="text-sm text-bae-navy/70">Question {questionIndex + 1} of {loveDeck.length}</p>
+              <p className="text-lg font-semibold text-bae-navy">{loveDeck[questionIndex]}</p>
+              <AnimatePresence>
+                {baeSpark && (
+                  <motion.p
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="text-xs text-bae-coral italic"
+                  >
+                    ✨ Bae: {baeSpark}
+                  </motion.p>
+                )}
+              </AnimatePresence>
               <textarea
                 value={answers[questionIndex] || ''}
                 onChange={(e) => {
@@ -154,12 +184,22 @@ export const GamesPage = ({ onNavigate }) => {
                   next[questionIndex] = e.target.value;
                   setAnswers(next);
                 }}
-                className="w-full min-h-[120px] rounded-3xl border border-bae-peach/50 bg-white p-4 text-bae-navy focus:outline-none focus:ring-2 focus:ring-bae-coral"
-                placeholder="Write your answer here"
+                className="w-full min-h-[100px] rounded-3xl border border-bae-peach/50 bg-white p-4 text-bae-navy focus:outline-none focus:ring-2 focus:ring-bae-coral"
+                placeholder="Jot your answer (or just talk it out together)"
               />
               <Button variant="primary" className="w-full" onClick={handleLoveAnswer}>
-                Save answer
+                Next question
               </Button>
+              {isAIConfigured() && (
+                <Button variant="outline" className="w-full" disabled={aiBusy} onClick={askBaeForQuestion}>
+                  {aiBusy ? (
+                    <span className="flex items-center gap-2 justify-center"><RefreshCw className="w-4 h-4 animate-spin" /> Bae is thinking…</span>
+                  ) : (
+                    <span className="flex items-center gap-2 justify-center"><Sparkles className="w-4 h-4" /> Ask Bae for a question just for us</span>
+                  )}
+                </Button>
+              )}
+              {aiError && <p className="text-xs text-red-500 text-center">{aiError}</p>}
             </div>
           )}
         </div>
@@ -169,29 +209,45 @@ export const GamesPage = ({ onNavigate }) => {
 
   const partnerQuizContent = () => {
     const question = partnerQuiz[questionIndex];
-
     return (
       <Card variant="peach">
         <div>
           <div className="text-center mb-4">
             <Gamepad2 className="w-12 h-12 text-bae-coral mx-auto mb-3" />
-            <h3 className="text-xl font-bold text-bae-navy mb-2">Partner Quiz</h3>
-            <p className="text-bae-navy/70">Choose the answer you think your partner would pick, then compare.</p>
+            <h3 className="text-xl font-bold text-bae-navy mb-2">How Well Do You Know {partnerName}?</h3>
+            <p className="text-bae-navy/70 text-sm">Lock in your guesses — then ask {partnerName} and score it together.</p>
           </div>
 
           {showResults ? (
             <div className="space-y-4">
-              <p className="text-lg font-semibold text-bae-navy">Quiz complete!</p>
-              <p className="text-bae-navy/70">Score: {quizScore} / {partnerQuiz.length}</p>
+              <p className="text-lg font-semibold text-bae-navy text-center">
+                Now the fun part — ask {partnerName}! 🎉
+              </p>
+              <p className="text-sm text-bae-navy/70 text-center">
+                Read each guess out loud. Tap the ones you got right.
+              </p>
               <div className="space-y-3">
                 {partnerQuiz.map((item, idx) => (
-                  <div key={item.question} className="rounded-3xl border border-bae-peach/50 bg-white p-4">
-                    <p className="text-sm text-bae-navy/70 mb-2">{item.question}</p>
-                    <p className="text-base text-bae-navy font-semibold">Your answer: {answers[idx] || 'No answer'}</p>
-                    <p className="text-sm text-bae-navy/70 mt-2">{item.tip}</p>
-                  </div>
+                  <button
+                    key={item.question}
+                    onClick={() => toggleMatch(idx)}
+                    className={`w-full text-left rounded-3xl border p-4 transition ${
+                      matches.includes(idx) ? 'border-green-400 bg-green-50' : 'border-bae-peach/50 bg-white'
+                    }`}
+                  >
+                    <p className="text-sm text-bae-navy/70 mb-1">{item.question}</p>
+                    <p className="text-base text-bae-navy font-semibold">
+                      {matches.includes(idx) ? '✅ ' : ''}{answers[idx] || 'No guess'}
+                    </p>
+                  </button>
                 ))}
               </div>
+              <Card variant="gradient" hover={false}>
+                <p className="text-sm text-bae-navy text-center font-semibold">
+                  {matches.length}/{partnerQuiz.length} hearts in sync
+                  {matches.length === partnerQuiz.length ? ' — soulmate status 💘' : matches.length >= 2 ? ' — you really see each other 💛' : ' — more to discover, and that\'s the fun part 🌱'}
+                </p>
+              </Card>
               <Button variant="secondary" className="w-full" onClick={resetGame}>
                 Play again
               </Button>
@@ -212,8 +268,8 @@ export const GamesPage = ({ onNavigate }) => {
                   </Button>
                 ))}
               </div>
-              <Button variant="primary" className="w-full" disabled={!selectedOption} onClick={handleQuizSubmit}>
-                {questionIndex < partnerQuiz.length - 1 ? 'Next question' : 'See results'}
+              <Button variant="primary" className="w-full" disabled={!selectedOption} onClick={handleQuizGuess}>
+                {questionIndex < partnerQuiz.length - 1 ? 'Lock it in' : 'See my guesses'}
               </Button>
             </div>
           )}
@@ -222,54 +278,65 @@ export const GamesPage = ({ onNavigate }) => {
     );
   };
 
-  const gratitudeContent = () => {
-    return (
-      <Card variant="peach">
-        <div>
-          <div className="text-center mb-4">
-            <Gamepad2 className="w-12 h-12 text-bae-coral mx-auto mb-3" />
-            <h3 className="text-xl font-bold text-bae-navy mb-2">Gratitude Challenge</h3>
-            <p className="text-bae-navy/70">Write notes that help your partner feel seen and celebrated.</p>
-          </div>
-
-          <div className="space-y-4">
-            {gratitudePrompts.map((prompt, idx) => (
-              <div key={prompt} className="space-y-2 rounded-3xl border border-bae-peach/50 bg-white p-4">
-                <p className="text-sm text-bae-navy/70">{prompt}</p>
-                <textarea
-                  value={gratitudeAnswers[idx]}
-                  onChange={(e) => handleGratitudeChange(idx, e.target.value)}
-                  className="w-full min-h-[100px] rounded-3xl border border-bae-peach/40 bg-bae-cream p-4 text-bae-navy focus:outline-none focus:ring-2 focus:ring-bae-coral"
-                  placeholder="Write your appreciation here"
-                />
-              </div>
-            ))}
-            <div className="rounded-3xl border border-bae-peach/50 bg-white p-4 text-bae-navy/70">
-              <p className="font-semibold text-bae-navy mb-2">Conversation starter</p>
-              <p>Share one note with your partner and invite them to share one back.</p>
-            </div>
-            <Button variant="primary" className="w-full" onClick={() => setShowResults(true)}>
-              Review notes
-            </Button>
-            {showResults && (
-              <div className="space-y-3 rounded-3xl border border-bae-peach/50 bg-white p-4">
-                <p className="text-lg font-semibold text-bae-navy">Your gratitude notes</p>
-                {gratitudeAnswers.map((note, idx) => (
-                  <div key={idx} className="rounded-3xl bg-bae-warm-white p-3 text-bae-navy/80">
-                    <p className="text-sm text-bae-navy/70 mb-1">{gratitudePrompts[idx]}</p>
-                    <p>{note || 'No note yet'}</p>
-                  </div>
-                ))}
-                <Button variant="secondary" className="w-full" onClick={resetGame}>
-                  Start again
-                </Button>
-              </div>
-            )}
-          </div>
+  const gratitudeContent = () => (
+    <Card variant="peach">
+      <div>
+        <div className="text-center mb-4">
+          <Gamepad2 className="w-12 h-12 text-bae-coral mx-auto mb-3" />
+          <h3 className="text-xl font-bold text-bae-navy mb-2">Gratitude Challenge</h3>
+          <p className="text-bae-navy/70 text-sm">
+            Write it rough — Bae will tune it to {partnerName}'s love language.
+          </p>
         </div>
-      </Card>
-    );
-  };
+
+        <div className="space-y-4">
+          {gratitudePrompts.map((prompt, idx) => (
+            <div key={prompt} className="space-y-2 rounded-3xl border border-bae-peach/50 bg-white p-4">
+              <p className="text-sm text-bae-navy/70">{prompt}</p>
+              <textarea
+                value={gratitudeAnswers[idx]}
+                onChange={(e) => {
+                  const next = [...gratitudeAnswers];
+                  next[idx] = e.target.value;
+                  setGratitudeAnswers(next);
+                }}
+                className="w-full min-h-[80px] rounded-3xl border border-bae-peach/40 bg-bae-cream p-4 text-bae-navy focus:outline-none focus:ring-2 focus:ring-bae-coral"
+                placeholder="Write your appreciation here"
+              />
+              {isAIConfigured() && gratitudeAnswers[idx]?.trim() && !polished[idx] && (
+                <Button variant="outline" size="sm" className="w-full" disabled={aiBusy} onClick={() => polishNote(idx)}>
+                  <span className="flex items-center gap-2 justify-center">
+                    <Sparkles className="w-4 h-4" /> Make it shine for {partnerName}
+                  </span>
+                </Button>
+              )}
+              <AnimatePresence>
+                {polished[idx] && (
+                  <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+                    <div className="rounded-2xl bg-bae-light-peach p-3">
+                      <p className="text-xs font-semibold text-bae-coral mb-1">✨ BAE'S POLISH</p>
+                      <p className="text-sm text-bae-navy italic">"{polished[idx].polished}"</p>
+                      {polished[idx].why && (
+                        <p className="text-[11px] text-bae-navy/50 mt-1">{polished[idx].why}</p>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ))}
+          {aiError && <p className="text-xs text-red-500 text-center">{aiError}</p>}
+          <div className="rounded-3xl border border-bae-peach/50 bg-white p-4 text-bae-navy/70">
+            <p className="font-semibold text-bae-navy mb-1 text-sm">The challenge</p>
+            <p className="text-sm">Send or read ONE note to {partnerName} today. Small words, big deposit. 💛</p>
+          </div>
+          <Button variant="secondary" className="w-full" onClick={resetGame}>
+            Done
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
 
   const renderGameContent = () => {
     if (!currentGame) return null;
@@ -283,7 +350,8 @@ export const GamesPage = ({ onNavigate }) => {
     if (tab === 'home') onNavigate?.('home');
     else if (tab === 'checkin') onNavigate?.('checkin');
     else if (tab === 'add') onNavigate?.('coach');
-    else if (tab === 'insights') onNavigate?.('memories');
+    else if (tab === 'memories') onNavigate?.('memories');
+    else if (tab === 'weather') onNavigate?.('weather');
   };
 
   return (
@@ -301,41 +369,42 @@ export const GamesPage = ({ onNavigate }) => {
           className="text-center mt-6"
         >
           <h2 className="text-2xl font-bold text-bae-navy mb-2">Relationship Games</h2>
-          <p className="text-sm text-bae-navy/70">Play games designed to spark connection, curiosity, and laughter.</p>
+          <p className="text-sm text-bae-navy/70">Connection, curiosity, and laughter — with Bae as your game master. ✨</p>
         </motion.div>
 
-        <div className="grid gap-4">
-          {games.map((game, idx) => {
-            const Icon = game.icon;
-            return (
-              <motion.div
-                key={game.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
-              >
-                <Card variant="gradient">
-                  <div className="flex items-start gap-4">
-                    <motion.div
-                      className={`p-3 rounded-xl bg-gradient-to-br ${game.color}`}
-                      whileHover={{ scale: 1.05 }}
-                    >
-                      <Icon className="w-6 h-6 text-white" />
-                    </motion.div>
-
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-bae-navy mb-1">{game.title}</h3>
-                      <p className="text-sm text-bae-navy/70 mb-3">{game.description}</p>
-                      <Button variant="secondary" size="sm" onClick={() => handleStartGame(game.id)}>
-                        Play Now
-                      </Button>
+        {!currentGame && (
+          <div className="grid gap-4">
+            {games.map((game, idx) => {
+              const Icon = game.icon;
+              return (
+                <motion.div
+                  key={game.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                >
+                  <Card variant="gradient">
+                    <div className="flex items-start gap-4">
+                      <motion.div
+                        className={`p-3 rounded-xl bg-gradient-to-br ${game.color}`}
+                        whileHover={{ scale: 1.05 }}
+                      >
+                        <Icon className="w-6 h-6 text-white" />
+                      </motion.div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-bae-navy mb-1">{game.title}</h3>
+                        <p className="text-sm text-bae-navy/70 mb-3">{game.description}</p>
+                        <Button variant="secondary" size="sm" onClick={() => handleStartGame(game.id)}>
+                          Play Now
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              </motion.div>
-            );
-          })}
-        </div>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
 
         {currentGame && (
           <div className="space-y-4">
