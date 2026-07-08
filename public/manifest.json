@@ -1,0 +1,16 @@
+{
+  "name": "Bae Watch",
+  "short_name": "Bae Watch",
+  "description": "Love better. Notice more. A relationship companion for couples.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFF8F3",
+  "theme_color": "#FF6B5B",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "/icons.svg",   "sizes": "any", "type": "image/svg+xml" }
+  ],
+  "screenshots": [],
+  "categories": ["lifestyle", "health", "social"]
+}
