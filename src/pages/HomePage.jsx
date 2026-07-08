@@ -251,6 +251,24 @@ export const HomePage = ({ onNavigate }) => {
           </button>
         </motion.div>
 
+        {/* Quick links — timeline, growth, date nights */}
+        <motion.div variants={itemVariants} className="grid grid-cols-3 gap-2">
+          {[
+            { page: 'timeline', emoji: '📖', label: 'Timeline' },
+            { page: 'growth', emoji: '🌱', label: 'Growth' },
+            { page: 'date-planner', emoji: '🌙', label: 'Date Night' },
+          ].map((link) => (
+            <button
+              key={link.page}
+              onClick={() => onNavigate?.(link.page)}
+              className="bg-bae-warm-white border border-bae-peach/40 rounded-2xl py-3 flex flex-col items-center gap-1 hover:bg-bae-light-peach transition"
+            >
+              <span className="text-xl">{link.emoji}</span>
+              <span className="text-[11px] font-semibold text-bae-navy">{link.label}</span>
+            </button>
+          ))}
+        </motion.div>
+
         {/* Understanding Me — attachment & trauma self-insight */}
         <motion.div variants={itemVariants}>
           <Card variant="gradient">

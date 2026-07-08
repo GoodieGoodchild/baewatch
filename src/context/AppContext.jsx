@@ -59,6 +59,9 @@ export const AppProvider = ({ children }) => {
     selfInsight: null,
     partnerInsight: null,
     connectionBridge: null,
+    timeline: [],
+    growthGoals: [],
+    plannedDates: [],
     // Live slice of your partner's world, synced from the shared relationship doc
     // when you're paired: their name, love language, mood, latest check-in, insight card.
     partnerSync: null,
@@ -378,6 +381,75 @@ export const AppProvider = ({ children }) => {
     }));
   }, []);
 
+  // --- Phase 4: timeline, growth goals & date planner ----------------------
+  const addTimelineEvent = useCallback((event) => {
+    setRelationshipData((prev) => ({
+      ...prev,
+      timeline: [{ ...event, id: Date.now().toString() }, ...(prev.timeline || [])],
+    }));
+  }, []);
+
+  const deleteTimelineEvent = useCallback((id) => {
+    setRelationshipData((prev) => ({
+      ...prev,
+      timeline: (prev.timeline || []).filter((e) => e.id !== id),
+    }));
+  }, []);
+
+  const addGrowthGoal = useCallback((goal) => {
+    setRelationshipData((prev) => ({
+      ...prev,
+      growthGoals: [
+        { ...goal, id: Date.now().toString(), progress: 0, completed: false, addedAt: new Date().toISOString() },
+        ...(prev.growthGoals || []),
+      ],
+    }));
+  }, []);
+
+  const updateGoalProgress = useCallback((id, progress) => {
+    setRelationshipData((prev) => ({
+      ...prev,
+      growthGoals: (prev.growthGoals || []).map((g) => (g.id === id ? { ...g, progress } : g)),
+    }));
+  }, []);
+
+  const toggleGoalComplete = useCallback((id) => {
+    setRelationshipData((prev) => ({
+      ...prev,
+      growthGoals: (prev.growthGoals || []).map((g) =>
+        g.id === id ? { ...g, completed: !g.completed, progress: !g.completed ? 100 : g.progress } : g
+      ),
+    }));
+  }, []);
+
+  const deleteGrowthGoal = useCallback((id) => {
+    setRelationshipData((prev) => ({
+      ...prev,
+      growthGoals: (prev.growthGoals || []).filter((g) => g.id !== id),
+    }));
+  }, []);
+
+  const planDate = useCallback((idea) => {
+    setRelationshipData((prev) => {
+      if ((prev.plannedDates || []).some((d) => d.ideaId === idea.id && !d.done)) return prev;
+      return {
+        ...prev,
+        plannedDates: [
+          ...(prev.plannedDates || []),
+          { ideaId: idea.id, title: idea.title, emoji: idea.emoji, plannedFor: null, done: false },
+        ],
+      };
+    });
+  }, []);
+
+  const markDateDone = useCallback((ideaId) => {
+    setRelationshipData((prev) => ({
+      ...prev,
+      plannedDates: (prev.plannedDates || []).map((d) => (d.ideaId === ideaId ? { ...d, done: true } : d)),
+    }));
+  }, []);
+  // --------------------------------------------------------------------------
+
   const value = {
     currentPage,
     goToPage,
@@ -404,6 +476,14 @@ export const AppProvider = ({ children }) => {
     exitDemo,
     relationshipId,
     isPaired: Boolean(relationshipId),
+    addTimelineEvent,
+    deleteTimelineEvent,
+    addGrowthGoal,
+    updateGoalProgress,
+    toggleGoalComplete,
+    deleteGrowthGoal,
+    planDate,
+    markDateDone,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

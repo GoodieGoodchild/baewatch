@@ -18,6 +18,9 @@ import RepairPage from './pages/RepairPage';
 import UnderstandingMePage from './pages/UnderstandingMePage';
 import LoveLanguagesPage from './pages/LoveLanguagesPage';
 import InsightsPage from './pages/InsightsPage';
+import TimelinePage from './pages/TimelinePage';
+import GrowthPage from './pages/GrowthPage';
+import DatePlannerPage from './pages/DatePlannerPage';
 import { AppProvider, useApp } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import './App.css';
@@ -146,6 +149,12 @@ function AppContent() {
         <InsightsPage key="insights" onNavigate={handleNavigate} />
       ) : currentPage === 'love-languages' ? (
         <LoveLanguagesPage key="love-languages" onNavigate={handleNavigate} />
+      ) : currentPage === 'timeline' ? (
+        <TimelinePage key="timeline" onNavigate={handleNavigate} />
+      ) : currentPage === 'growth' ? (
+        <GrowthPage key="growth" onNavigate={handleNavigate} />
+      ) : currentPage === 'date-planner' ? (
+        <DatePlannerPage key="date-planner" onNavigate={handleNavigate} />
       ) : null}
     </AnimatePresence>
   );
