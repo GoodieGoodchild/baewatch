@@ -36,12 +36,14 @@ export const SignupPage = ({ initialInviteCode, onSwitchToLogin, onSignupSuccess
     try {
       const userCredential = await signup(formData.email, formData.password);
       const user = userCredential.user;
-      await setDoc(doc(db, 'users', user.uid), {
+      // Best-effort profile stamp: merge (never clobber relationshipData) and
+      // don't block navigation on it — if Firestore is briefly unreachable the
+      // AppContext sync will persist everything once it connects.
+      setDoc(doc(db, 'users', user.uid), {
         name: formData.name,
         email: formData.email,
         createdAt: new Date(),
-        partnerStatus: 'unpaired',
-      });
+      }, { merge: true }).catch((e) => console.error('Profile stamp failed:', e));
       onSignupSuccess?.();
     } catch (err) {
       const message = err?.message || err?.code || 'Failed to create account. Try again.';

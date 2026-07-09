@@ -80,7 +80,17 @@ export const AppProvider = ({ children }) => {
       return;
     }
 
+    // Safety valve: if Firestore is unreachable (offline, API disabled, rules
+    // hiccup) the snapshot never arrives and the app would sit on the splash
+    // forever. After 6s, proceed with defaults — the listener keeps trying and
+    // syncs the moment the backend responds.
+    const fallback = setTimeout(() => {
+      console.warn('Firestore slow/unreachable — continuing with local defaults.');
+      setIsLoaded(true);
+    }, 6000);
+
     const unsubscribe = onSnapshot(doc(db, 'users', currentUser.uid), (snap) => {
+      clearTimeout(fallback);
       if (snap.exists()) {
         const data = snap.data();
         if (data.relationshipData) {
@@ -91,11 +101,15 @@ export const AppProvider = ({ children }) => {
       }
       setIsLoaded(true);
     }, (error) => {
+      clearTimeout(fallback);
       console.error('Error loading data:', error);
       setIsLoaded(true);
     });
 
-    return unsubscribe;
+    return () => {
+      clearTimeout(fallback);
+      unsubscribe();
+    };
   }, [currentUser, demoMode]);
 
   // Persist changes — but not the change that came from a snapshot.
