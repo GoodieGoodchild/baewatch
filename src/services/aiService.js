@@ -35,8 +35,15 @@ async function chat(messages, { temperature = 0.7, maxTokens = 700, responseForm
 
   const url = PROXY_URL || OPENAI_URL;
   const headers = { 'Content-Type': 'application/json' };
-  // Only attach the key when calling OpenAI directly. A proxy injects its own.
-  if (!PROXY_URL) headers.Authorization = `Bearer ${OPENAI_KEY}`;
+  if (PROXY_URL) {
+    // The proxy authenticates Bae Watch users, not OpenAI keys: send the
+    // Firebase ID token so only signed-in users can spend AI tokens.
+    const { auth } = await import('../firebase');
+    const idToken = await auth.currentUser?.getIdToken?.();
+    if (idToken) headers.Authorization = `Bearer ${idToken}`;
+  } else {
+    headers.Authorization = `Bearer ${OPENAI_KEY}`;
+  }
 
   const res = await fetch(url, {
     method: 'POST',

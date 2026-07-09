@@ -6,7 +6,7 @@ import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import { Copy, Check, Heart } from 'lucide-react';
 import { db } from '../firebase';
-import { collection, addDoc, query, where, getDocs, updateDoc, setDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, getDoc, updateDoc, setDoc, doc } from 'firebase/firestore';
 
 // Short, friendly, unambiguous pairing codes (no 0/O, 1/I/L).
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -36,10 +36,10 @@ export const PartnerInvitePage = ({ initialInviteCode, onComplete }) => {
     setError('');
     try {
       const code = makeCode();
-      await addDoc(collection(db, 'invites'), {
-        code,
+      // The code IS the document ID: knowing it is the capability to redeem
+      // it, and security rules forbid listing so codes can't be enumerated.
+      await setDoc(doc(db, 'invites', code), {
         inviterId: currentUser.uid,
-        inviterEmail: currentUser.email,
         createdAt: new Date(),
         used: false,
       });
@@ -65,17 +65,24 @@ export const PartnerInvitePage = ({ initialInviteCode, onComplete }) => {
     setJoining(true);
     setError('');
     try {
-      const q = query(collection(db, 'invites'), where('code', '==', code), where('used', '==', false));
-      const snapshot = await getDocs(q);
+      const inviteRef = doc(db, 'invites', code);
+      const inviteSnap = await getDoc(inviteRef);
 
-      if (snapshot.empty) {
+      if (!inviteSnap.exists() || inviteSnap.data().used) {
         setError("That code wasn't found (or was already used). Double-check it with your partner.");
         setJoining(false);
         return;
       }
 
-      const inviteDoc = snapshot.docs[0];
-      const inviteData = inviteDoc.data();
+      const inviteData = inviteSnap.data();
+
+      // Codes expire after 48 hours (also enforced by security rules).
+      const createdAt = inviteData.createdAt?.toDate?.() || new Date(0);
+      if (Date.now() - createdAt.getTime() > 48 * 60 * 60 * 1000) {
+        setError('That code has expired — ask your partner to create a fresh one.');
+        setJoining(false);
+        return;
+      }
 
       if (inviteData.inviterId === currentUser.uid) {
         setError("That's your own code! Share it with your partner and let them enter it.");
@@ -90,7 +97,7 @@ export const PartnerInvitePage = ({ initialInviteCode, onComplete }) => {
         inviteCode: code,
       });
 
-      await updateDoc(doc(db, 'invites', inviteDoc.id), {
+      await updateDoc(inviteRef, {
         used: true,
         usedById: currentUser.uid,
         usedAt: new Date(),

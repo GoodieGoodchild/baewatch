@@ -9,12 +9,14 @@ export const LoginPage = ({ onSwitchToSignup, onExploreDemo }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, resetPassword } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setInfo('');
     setLoading(true);
 
     try {
@@ -24,6 +26,22 @@ export const LoginPage = ({ onSwitchToSignup, onExploreDemo }) => {
     }
 
     setLoading(false);
+  };
+
+  const handleForgotPassword = async () => {
+    setError('');
+    setInfo('');
+    if (!email.trim()) {
+      setError('Enter your email above first, then tap "Forgot password?" again.');
+      return;
+    }
+    try {
+      await resetPassword(email.trim());
+      setInfo('Reset link sent — check your inbox (and spam folder). 💌');
+    } catch {
+      // Deliberately vague: don't reveal whether an account exists.
+      setInfo('If an account exists for that email, a reset link is on its way. 💌');
+    }
   };
 
   return (
@@ -88,6 +106,9 @@ export const LoginPage = ({ onSwitchToSignup, onExploreDemo }) => {
             {error && (
               <p className="text-red-500 text-sm text-center">{error}</p>
             )}
+            {info && (
+              <p className="text-green-600 text-sm text-center">{info}</p>
+            )}
 
             <Button
               type="submit"
@@ -97,6 +118,14 @@ export const LoginPage = ({ onSwitchToSignup, onExploreDemo }) => {
             >
               {loading ? 'Signing In...' : 'Sign In'}
             </Button>
+
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              className="w-full text-center text-sm text-bae-navy/60 hover:text-bae-coral transition"
+            >
+              Forgot password?
+            </button>
           </form>
         </Card>
 

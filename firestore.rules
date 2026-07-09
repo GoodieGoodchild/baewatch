@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Is the signed-in user one of the two partners in this relationship?
+    function isPartnerOf(rid) {
+      let rel = get(/databases/$(database)/documents/relationships/$(rid)).data;
+      return request.auth.uid == rel.partner1Id || request.auth.uid == rel.partner2Id;
+    }
+
+    // ---- Users: private to the owner, with one narrow exception -----------
+    match /users/{userId} {
+      allow read, create, delete: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && (
+        request.auth.uid == userId
+        // Pairing handshake: the joining partner may stamp relationshipId on
+        // the inviter's doc — that single field only, and only if the writer
+        // really is a partner in that relationship.
+        || (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['relationshipId'])
+          && isPartnerOf(request.resource.data.relationshipId)
+        )
+      );
+    }
+
+    // ---- Invites: doc ID IS the code — knowing the code is the capability.
+    // No list permission, so codes cannot be enumerated.
+    match /invites/{code} {
+      allow get: if request.auth != null;
+      allow list: if false;
+      allow create: if request.auth != null
+        && request.resource.data.inviterId == request.auth.uid
+        && request.resource.data.used == false;
+      // Redeeming: unused -> used, by someone who isn't the inviter,
+      // within 48 hours of creation.
+      allow update: if request.auth != null
+        && resource.data.used == false
+        && request.resource.data.used == true
+        && request.resource.data.usedById == request.auth.uid
+        && resource.data.inviterId != request.auth.uid
+        && request.time < resource.data.createdAt + duration.value(48, 'h');
+    }
+
+    // ---- Relationships: only the two partners ------------------------------
+    match /relationships/{rid} {
+      allow create: if request.auth != null
+        && (request.resource.data.partner1Id == request.auth.uid
+            || request.resource.data.partner2Id == request.auth.uid);
+      allow read, update: if request.auth != null
+        && (resource.data.partner1Id == request.auth.uid
+            || resource.data.partner2Id == request.auth.uid);
+      allow delete: if false;
+    }
+
+    // Everything else: denied.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
