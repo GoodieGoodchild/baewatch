@@ -50,6 +50,12 @@ service cloud.firestore {
         && (resource.data.partner1Id == request.auth.uid
             || resource.data.partner2Id == request.auth.uid);
       allow delete: if false;
+
+      // Couple chat (including Bae's replies, written by either partner's device).
+      match /messages/{mid} {
+        allow read, create: if request.auth != null && isPartnerOf(rid);
+        allow update, delete: if false;
+      }
     }
 
     // Everything else: denied.

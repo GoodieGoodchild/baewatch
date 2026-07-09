@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import { Heart, ArrowRight, ArrowLeft } from 'lucide-react';
-import { loveLanguageList, RECEIVE_PROMPT } from '../services/loveLanguages';
 
 // Onboarding is about YOU. We never ask you to guess your partner's inner world
 // — you describe your own, and later you both learn together on your own devices.
@@ -16,7 +15,6 @@ export const OnboardingPage = ({ onComplete }) => {
     yourMood: '',
     cupFullness: 65,
     yourNeed: '',
-    yourLoveLanguage: '',
   });
 
   const set = (patch) => setData((d) => ({ ...d, ...patch }));
@@ -44,7 +42,6 @@ export const OnboardingPage = ({ onComplete }) => {
     { id: 'name', canAdvance: () => data.yourName.trim().length > 0 },
     { id: 'mood', canAdvance: () => Boolean(data.yourMood) },
     { id: 'need', canAdvance: () => Boolean(data.yourNeed) },
-    { id: 'love', canAdvance: () => Boolean(data.yourLoveLanguage) },
     { id: 'partner', canAdvance: () => true }, // partner name optional
   ];
 
@@ -196,41 +193,6 @@ export const OnboardingPage = ({ onComplete }) => {
                   <p className="text-bae-navy/60 text-sm">Naming it is the first step to getting it.</p>
                 </div>
                 <GlowGrid options={needs} value={data.yourNeed} onSelect={(v) => set({ yourNeed: v })} />
-              </div>
-            )}
-
-            {current.id === 'love' && (
-              <div className="space-y-5">
-                <div className="text-center space-y-1">
-                  <h2 className="text-2xl font-bold text-bae-navy">{RECEIVE_PROMPT}</h2>
-                  <p className="text-bae-navy/60 text-sm">Your love language — how love lands best for you.</p>
-                </div>
-                <div className="space-y-2">
-                  {loveLanguageList.map((lang) => {
-                    const active = data.yourLoveLanguage === lang.key;
-                    return (
-                      <motion.button
-                        key={lang.key}
-                        whileTap={{ scale: 0.98 }}
-                        animate={
-                          active
-                            ? { boxShadow: '0 0 0 3px rgba(255,107,91,0.35)' }
-                            : { boxShadow: '0 0 0 0px rgba(255,107,91,0)' }
-                        }
-                        onClick={() => set({ yourLoveLanguage: lang.key })}
-                        className={`w-full text-left p-4 rounded-2xl border flex items-start gap-3 transition ${
-                          active ? 'bg-bae-peach border-bae-coral' : 'bg-bae-warm-white border-bae-peach/40'
-                        }`}
-                      >
-                        <span className="text-2xl flex-shrink-0">{lang.emoji}</span>
-                        <div>
-                          <p className="text-sm font-semibold text-bae-navy">{lang.label}</p>
-                          <p className="text-xs text-bae-navy/60">{lang.short}</p>
-                        </div>
-                      </motion.button>
-                    );
-                  })}
-                </div>
               </div>
             )}
 

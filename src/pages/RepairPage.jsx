@@ -55,7 +55,7 @@ const fiveRules = [
 const TOTAL_STEPS = steps.length;
 
 export const RepairPage = ({ onNavigate }) => {
-  const { updateConnectionLevel, updateWeatherMood, relationshipData, addRepairCommitment } = useApp();
+  const { updateWeatherMood, relationshipData, addRepairCommitment, requestRepair } = useApp();
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
 
@@ -97,8 +97,10 @@ export const RepairPage = ({ onNavigate }) => {
   };
 
   const handleDone = () => {
-    const currentLevel = relationshipData.connectionLevel ?? 72;
-    updateConnectionLevel(Math.min(100, currentLevel + 10));
+    // Repair isn't complete because the apology was sent — the hurt partner
+    // now gets asked what would actually help, and THEY close the loop.
+    // (Connection rises only when they mark it repaired.)
+    requestRepair(relationshipData.profile?.yourName || '');
     updateWeatherMood('cloudy');
     onNavigate?.('home');
   };

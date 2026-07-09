@@ -9,7 +9,9 @@ import ConnectionLevelWidget from '../components/widgets/ConnectionLevelWidget';
 import InsightCard from '../components/cards/InsightCard';
 import { Heart, Zap, TrendingUp, Edit, X, CheckCircle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { partnerReminder } from '../services/loveLanguages';
+import { attachmentStyles } from '../services/attachmentProfiles';
 
 const questions = [
   "What made you feel most loved this week?",
@@ -80,7 +82,8 @@ const moodEmojis = {
 
 export const HomePage = ({ onNavigate }) => {
   const [activeTab, setActiveTab] = useState('home');
-  const { relationshipData, dismissWeeklyRecap, dismissRepairCommitment, demoMode, exitDemo, isPaired } = useApp();
+  const { relationshipData, dismissWeeklyRecap, dismissRepairCommitment, demoMode, exitDemo, isPaired, chooseRepairOption, closeRepair } = useApp();
+  const { currentUser } = useAuth();
   const profile = relationshipData.profile || {};
   const partnerName = profile.partnerName || 'your person';
   const cupFullness = profile.cupFullness ?? 72;
@@ -120,6 +123,49 @@ export const HomePage = ({ onNavigate }) => {
   const selfInsight = relationshipData.selfInsight;
   const bridge = relationshipData.connectionBridge;
   const partnerCheckIn = relationshipData.partnerSync?.latestCheckIn;
+
+  // Repair request: am I the one who apologized, or the one being asked?
+  const myUid = demoMode ? 'me' : currentUser?.uid;
+  const repairReq = relationshipData.repairRequest;
+  const iAmApologizer = repairReq && repairReq.from === myUid;
+  const repairOptions = [
+    { id: 'talk', emoji: '🗣️', label: 'A calm conversation about it' },
+    { id: 'fun', emoji: '🎡', label: 'A light, fun night out — no heavy talk' },
+    { id: 'space', emoji: '🌙', label: 'A little space first, then reconnect' },
+    { id: 'words', emoji: '💌', label: 'Words — write me what you told the app' },
+    { id: 'act', emoji: '🛠️', label: 'Show me — a small act of care' },
+    { id: 'closeness', emoji: '🫂', label: 'Physical closeness — a long hug' },
+  ];
+  const chosenOption = repairReq?.choice ? repairOptions.find((o) => o.id === repairReq.choice) : null;
+
+  // Partner's Manual of Me, opened to the page that matches how they feel today.
+  const partnerManual = relationshipData.partnerSync?.manual;
+  const manualKeyByState = {
+    anxious: 'anxious', overwhelmed: 'overwhelmed', disconnected: 'hurt',
+    exhausted: 'overwhelmed', okay: null, reassured: null, affectionate: null, loving: null,
+  };
+  const manualKey = partnerCheckIn ? manualKeyByState[partnerCheckIn.stateId] : null;
+  const manualEntry = manualKey && partnerManual?.[manualKey];
+  const manualHasContent = manualEntry && (manualEntry.means || manualEntry.helps);
+
+  // Growth edge: one small practice at your attachment style's edge.
+  const myStyle = relationshipData.selfInsight?.dominant;
+  const growthEdges = {
+    avoidant: 'Once this week, say "I need a minute — I\'m not leaving" instead of just going quiet.',
+    anxious: 'Once this week, say your need once, clearly — then let it land without repeating it.',
+    secure: 'Once this week, name out loud one thing your partner did that made you feel safe.',
+    disorganized: 'Once this week, pause and ask yourself: is this the longing talking, or the fear?',
+  };
+  const growthEdge = myStyle ? growthEdges[myStyle] : null;
+
+  // Passive pattern noticing: 3+ of the same difficult state in 14 days.
+  const last14 = getLastNDaysStr(14);
+  const recentDifficult = checkInHistory.filter(
+    (c) => last14.includes(c.date) && ['overwhelmed', 'disconnected', 'anxious'].includes(c.stateId)
+  );
+  const patternCounts = recentDifficult.reduce((acc, c) => { acc[c.stateId] = (acc[c.stateId] || 0) + 1; return acc; }, {});
+  const patternEntry = Object.entries(patternCounts).find(([, n]) => n >= 3);
+  const patternLabel = patternEntry ? { overwhelmed: 'overwhelmed', disconnected: 'disconnected', anxious: 'anxious' }[patternEntry[0]] : null;
   const llReminder = partnerReminder(profile.partnerName, profile.partnerLoveLanguage);
   const [repairDismissed, setRepairDismissed] = useState(false);
 
@@ -285,10 +331,11 @@ export const HomePage = ({ onNavigate }) => {
           </button>
         </motion.div>
 
-        {/* Quick links — timeline, growth, date nights */}
-        <motion.div variants={itemVariants} className="grid grid-cols-3 gap-2">
+        {/* Quick links — manual, timeline, growth, date nights */}
+        <motion.div variants={itemVariants} className="grid grid-cols-4 gap-2">
           {[
-            { page: 'timeline', emoji: '📖', label: 'Timeline' },
+            { page: 'manual', emoji: '📖', label: 'My Manual' },
+            { page: 'timeline', emoji: '📜', label: 'Timeline' },
             { page: 'growth', emoji: '🌱', label: 'Growth' },
             { page: 'date-planner', emoji: '🌙', label: 'Date Night' },
           ].map((link) => (
@@ -330,6 +377,74 @@ export const HomePage = ({ onNavigate }) => {
           </Card>
         </motion.div>
 
+        {/* Repair request — the hurt partner decides what repair looks like */}
+        {repairReq && !iAmApologizer && repairReq.status === 'choosing' && (
+          <motion.div variants={itemVariants}>
+            <Card variant="gradient">
+              <p className="text-sm font-bold text-bae-navy mb-1">
+                💙 {repairReq.fromName || partnerName} worked through the repair guide and wants to make things right.
+              </p>
+              <p className="text-xs text-bae-navy/60 mb-3">
+                What would actually feel best to you? There's no wrong answer — and no pressure to pick anything you don't want.
+              </p>
+              <div className="space-y-2">
+                {repairOptions.map((o) => (
+                  <button
+                    key={o.id}
+                    onClick={() => chooseRepairOption(o.id)}
+                    className="w-full text-left p-3 rounded-2xl border border-bae-peach/40 bg-white/70 flex items-center gap-3 hover:bg-bae-light-peach transition"
+                  >
+                    <span className="text-xl">{o.emoji}</span>
+                    <span className="text-sm text-bae-navy">{o.label}</span>
+                  </button>
+                ))}
+              </div>
+            </Card>
+          </motion.div>
+        )}
+
+        {repairReq && !iAmApologizer && repairReq.status === 'chosen' && (
+          <motion.div variants={itemVariants}>
+            <Card variant="gradient">
+              <p className="text-sm font-bold text-bae-navy mb-1">
+                💙 You asked for: {chosenOption?.emoji} {chosenOption?.label}
+              </p>
+              <p className="text-xs text-bae-navy/60 mb-3">
+                When it genuinely feels repaired — not before — close the loop. That's what tells{' '}
+                {repairReq.fromName || partnerName} the repair actually landed.
+              </p>
+              <Button variant="primary" size="sm" className="w-full" onClick={closeRepair}>
+                It feels repaired now 💛
+              </Button>
+            </Card>
+          </motion.div>
+        )}
+
+        {repairReq && iAmApologizer && (
+          <motion.div variants={itemVariants}>
+            <Card variant="light">
+              {repairReq.status === 'choosing' ? (
+                <>
+                  <p className="text-sm font-bold text-bae-navy mb-1">💙 Repair in {partnerName}'s hands</p>
+                  <p className="text-xs text-bae-navy/60">
+                    You did your part. {partnerName} is being asked what would feel best — you'll see
+                    their answer here. Repair completes when it feels repaired to them.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-bold text-bae-navy mb-1">
+                    💙 {partnerName} chose: {chosenOption?.emoji} {chosenOption?.label}
+                  </p>
+                  <p className="text-xs text-bae-navy/60">
+                    That's your answer — no guessing needed. Follow through, gently.
+                  </p>
+                </>
+              )}
+            </Card>
+          </motion.div>
+        )}
+
         {/* Partner's latest check-in — synced live from their device */}
         {partnerCheckIn && (
           <motion.div variants={itemVariants}>
@@ -356,6 +471,78 @@ export const HomePage = ({ onNavigate }) => {
               <p className="text-xs text-bae-navy/50 mt-2">
                 This is how to show up for {partnerName} today.
               </p>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Their Manual of Me, opened to today's page — written once, calmly,
+            so they never have to explain themselves mid-storm */}
+        {manualHasContent && (
+          <motion.div variants={itemVariants}>
+            <Card variant="peach">
+              <p className="text-xs font-semibold text-bae-coral mb-2">
+                📖 FROM {partnerName.toUpperCase()}'S MANUAL — for days like today
+              </p>
+              {manualEntry.means && (
+                <p className="text-sm text-bae-navy/80 mb-2">
+                  <strong>What's really happening:</strong> {manualEntry.means}
+                </p>
+              )}
+              {manualEntry.helps && (
+                <p className="text-sm text-bae-navy/80">
+                  <strong>What actually helps:</strong> {manualEntry.helps}
+                </p>
+              )}
+              {partnerManual?.neverSay && (
+                <p className="text-xs text-bae-navy/50 mt-2">🚫 Just don't say: "{partnerManual.neverSay}"</p>
+              )}
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Chat — with Bae one tap away */}
+        <motion.div variants={itemVariants}>
+          <Card variant="light" onClick={() => onNavigate?.('chat')} className="cursor-pointer">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl flex-shrink-0">💬</span>
+              <div className="flex-1">
+                <h3 className="text-base font-semibold text-bae-navy">Chat with {partnerName}</h3>
+                <p className="text-xs text-bae-navy/60 mt-0.5">
+                  Your private space — and Bae ✨ is right there when you want a wise third voice.
+                </p>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Growth edge — one small practice at your attachment style's edge */}
+        {growthEdge && (
+          <motion.div variants={itemVariants}>
+            <Card variant="light">
+              <p className="text-xs font-semibold text-bae-coral mb-1">
+                🌱 THIS WEEK'S GROWTH EDGE {myStyle && attachmentStyles[myStyle] ? `· ${attachmentStyles[myStyle].emoji}` : ''}
+              </p>
+              <p className="text-sm text-bae-navy/80">{growthEdge}</p>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Gentle pattern noticing — detection from behaviour, not self-report */}
+        {patternLabel && (
+          <motion.div variants={itemVariants}>
+            <Card variant="light">
+              <p className="text-sm text-bae-navy/80">
+                💭 I've noticed you've felt <strong>{patternLabel}</strong> a few times these past two
+                weeks. No judgment — patterns are information. Want to explore it?
+              </p>
+              <div className="flex gap-2 mt-3">
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => onNavigate?.('understanding-me')}>
+                  Reflect on it
+                </Button>
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => onNavigate?.('chat')}>
+                  Talk to Bae ✨
+                </Button>
+              </div>
             </Card>
           </motion.div>
         )}

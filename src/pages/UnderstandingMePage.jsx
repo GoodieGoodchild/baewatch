@@ -28,6 +28,7 @@ export const UnderstandingMePage = ({ onNavigate }) => {
   const [trauma, setTrauma] = useState(existing?.traumaResponses || []);
   const [context, setContext] = useState(existing?.neurodivergence || []);
   const [freeText, setFreeText] = useState(existing?.freeText || '');
+  const [origins, setOrigins] = useState(existing?.origins || '');
   const [card, setCard] = useState(existing?.card || null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -73,6 +74,7 @@ export const UnderstandingMePage = ({ onNavigate }) => {
         traumaResponses: trauma,
         neurodivergence: context,
         freeText,
+        origins,
         card: result,
       });
       setStepIdx(STEPS.length - 1);
@@ -299,6 +301,23 @@ export const UnderstandingMePage = ({ onNavigate }) => {
                   </Card>
                 )}
 
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-bae-navy">
+                    Where might this pattern have started? (optional, private)
+                  </p>
+                  <p className="text-[11px] text-bae-navy/50">
+                    Patterns that protect us usually learned to, somewhere. Understanding where makes
+                    it easier to be patient with yourself.
+                  </p>
+                  <textarea
+                    value={origins}
+                    onChange={(e) => setOrigins(e.target.value)}
+                    rows={3}
+                    placeholder="Going quiet kept the peace in my house growing up..."
+                    className="w-full rounded-2xl border border-bae-peach/40 bg-bae-warm-white p-4 text-sm text-bae-navy focus:outline-none focus:ring-2 focus:ring-bae-coral/30 resize-none"
+                  />
+                </div>
+
                 <div className="flex gap-2">
                   <Button variant="outline" className="flex-1" onClick={() => go(-1)}>Back</Button>
                   <Button
@@ -318,6 +337,25 @@ export const UnderstandingMePage = ({ onNavigate }) => {
                     )}
                   </Button>
                 </div>
+                {/* No-AI path: the map still saves so the couple's guidance works. */}
+                <Button
+                  variant="ghost"
+                  className="w-full"
+                  disabled={!quizComplete}
+                  onClick={() => {
+                    saveSelfInsight({
+                      dominant,
+                      quizAnswers,
+                      traumaResponses: trauma,
+                      neurodivergence: context,
+                      freeText,
+                      origins,
+                    });
+                    onNavigate?.('home');
+                  }}
+                >
+                  Save my map without the AI card →
+                </Button>
               </div>
             )}
 

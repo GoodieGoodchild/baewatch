@@ -57,6 +57,7 @@ export function buildDemoData() {
       yourMood: 'stressed',
       yourNeed: 'space',
       yourLoveLanguage: 'touch',
+      yourGivingLanguage: 'quality',
       partnerLoveLanguage: 'words',
       cupFullness: 46,
       partnerNotes: 'Maya is autistic — clear, spoken reassurance genuinely helps her. Silence reads as rejection.',
@@ -140,6 +141,52 @@ export function buildDemoData() {
       attachmentStyle: 'anxious',
       insightCard: null, // demo sets partnerInsight directly below instead
       commitment: 'I will say what I need once, clearly, and trust that it landed.',
+      givingLanguage: 'acts',
+      // Maya's Manual of Me — written once on a calm day, surfaced to Sam
+      // automatically on days like today.
+      manual: {
+        anxious: {
+          means: "My brain is hunting for proof that we're okay. I'm not trying to start a fight — I'm trying to end the one in my head.",
+          helps: "Tell me, in actual words, that we're okay and you're not going anywhere. Once, clearly. Then hold my hand.",
+        },
+        quiet: {
+          means: "If I've gone quiet, I've usually given up on being heard — that's a five-alarm signal for me.",
+          helps: 'Come to me first. Ask one gentle question and let me answer all the way.',
+        },
+        overwhelmed: {
+          means: 'Too many inputs — feelings included. Autistic overwhelm is physical, not dramatic.',
+          helps: 'Lower the volume of everything. Dim room, no big talks, sit with me.',
+        },
+        hurt: {
+          means: "I'll repeat myself when hurt because last time it didn't land. Repetition = it still matters.",
+          helps: 'Reflect my words back before you respond. "What I hear you saying is…" works like magic.',
+        },
+        neverSay: "You're overreacting",
+        alwaysWorks: 'Reach for my hand first. Words after.',
+      },
+    },
+
+    // Live repair request: Maya finished the repair guide on her device and
+    // the app is now asking SAM (the viewer) what would feel best for him.
+    repairRequest: {
+      from: 'demo-maya',
+      fromName: 'Maya',
+      createdAt: iso(daysAgo(0)),
+      status: 'choosing',
+      choice: null,
+    },
+
+    // Sam's own manual (partially filled — nudges him to finish it).
+    manual: {
+      quiet: {
+        means: "I'm regulating, not rejecting you. The silence is me trying NOT to say something I'd regret.",
+        helps: "Give me 20 minutes without follow-up questions. I promise I'll come back — hold me to it.",
+      },
+      anxious: { means: '', helps: '' },
+      overwhelmed: { means: '', helps: '' },
+      hurt: { means: '', helps: '' },
+      neverSay: 'We need to talk, NOW',
+      alwaysWorks: 'Sit next to me. Contact before conversation.',
     },
 
     // A precomputed bridge between the two styles (what the AI would generate).

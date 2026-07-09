@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { AnimatePresence } from 'framer-motion';
 import SplashScreen from './pages/SplashScreen';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
@@ -21,13 +20,16 @@ import InsightsPage from './pages/InsightsPage';
 import TimelinePage from './pages/TimelinePage';
 import GrowthPage from './pages/GrowthPage';
 import DatePlannerPage from './pages/DatePlannerPage';
+import LoveLanguageQuizPage from './pages/LoveLanguageQuizPage';
+import ManualPage from './pages/ManualPage';
+import ChatPage from './pages/ChatPage';
 import { AppProvider, useApp } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import './App.css';
 
 function AppContent() {
   const { currentUser } = useAuth();
-  const { updateProfile, relationshipData, isLoaded, demoMode, loadDemoData } = useApp();
+  const { updateProfile, relationshipData, isLoaded, demoMode, loadDemoData, isPaired } = useApp();
   const [currentPage, setCurrentPage] = useState('splash');
   const [authMode, setAuthMode] = useState('login'); // 'login' or 'signup'
   const [appReady, setAppReady] = useState(false);
@@ -58,23 +60,33 @@ function AppContent() {
     }
   }, [currentUser, inviteCodeFromUrl]);
 
+  // The gate: home is only reachable once you've told us who you are.
+  // Order matters — it's the clinical intake: name/mood -> how you love ->
+  // your attachment patterns -> connect your partner. Each step's data guides
+  // the couple from day one, so nobody starts blind.
+  const gatePage = () => {
+    if (!relationshipData.profile?.yourName) return 'onboarding';
+    if (!relationshipData.profile?.yourLoveLanguage) return 'love-quiz';
+    if (!relationshipData.selfInsight?.dominant) return 'understanding-me';
+    if (!isPaired && !demoMode) return 'partner-invite';
+    return 'home';
+  };
+
   const handleSplashComplete = () => {
-    if (currentUser) {
-      setCurrentPage(hasOnboarded ? 'home' : 'partner-invite');
-    } else {
-      setCurrentPage('auth');
-    }
+    setCurrentPage(currentUser ? gatePage() : 'auth');
     setAppReady(true);
   };
 
   const handleOnboardingComplete = (data) => {
     updateProfile(data);
     setHasOnboarded(true);
-    setCurrentPage('home');
+    setCurrentPage('love-quiz');
   };
 
+  // Any navigation to 'home' re-checks the gate, so required steps can't be
+  // skipped by wandering, but deliberate page-to-page navigation stays free.
   const handleNavigate = (page) => {
-    setCurrentPage(page);
+    setCurrentPage(page === 'home' ? gatePage() : page);
   };
 
   const switchAuthMode = (mode) => {
@@ -82,7 +94,7 @@ function AppContent() {
   };
 
   const handlePartnerInviteComplete = () => {
-    setCurrentPage(hasOnboarded ? 'home' : 'onboarding');
+    setCurrentPage(gatePage());
   };
 
   const handleExploreDemo = () => {
@@ -99,7 +111,7 @@ function AppContent() {
   }
 
   return (
-    <AnimatePresence mode="wait">
+    <React.Fragment>
       {currentPage === 'auth' ? (
         authMode === 'login' ? (
           <LoginPage
@@ -155,8 +167,14 @@ function AppContent() {
         <GrowthPage key="growth" onNavigate={handleNavigate} />
       ) : currentPage === 'date-planner' ? (
         <DatePlannerPage key="date-planner" onNavigate={handleNavigate} />
+      ) : currentPage === 'love-quiz' ? (
+        <LoveLanguageQuizPage key="love-quiz" onNavigate={handleNavigate} />
+      ) : currentPage === 'manual' ? (
+        <ManualPage key="manual" onNavigate={handleNavigate} />
+      ) : currentPage === 'chat' ? (
+        <ChatPage key="chat" onNavigate={handleNavigate} />
       ) : null}
-    </AnimatePresence>
+    </React.Fragment>
   );
 }
 

@@ -279,11 +279,9 @@ export const PartnerInvitePage = ({ initialInviteCode, onComplete }) => {
               )}
             </AnimatePresence>
 
-            <div className="text-center">
-              <Button onClick={() => onComplete?.()} variant="ghost">
-                Skip for now — I'll connect later
-              </Button>
-            </div>
+            <p className="text-center text-xs text-bae-navy/50">
+              Bae Watch opens once you're both here — it takes two. 💕
+            </p>
           </>
         )}
       </motion.div>

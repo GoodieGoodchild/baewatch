@@ -65,6 +65,10 @@ export const AppProvider = ({ children }) => {
     // Live slice of your partner's world, synced from the shared relationship doc
     // when you're paired: their name, love language, mood, latest check-in, insight card.
     partnerSync: null,
+    // Manual of Me: what my hard moments mean + what helps, written once.
+    manual: null,
+    // Live repair request on the shared doc: { from, fromName, status, choice }.
+    repairRequest: null,
   });
   // The shared relationships/{id} doc both partners read/write once paired.
   const [relationshipId, setRelationshipId] = useState(null);
@@ -172,6 +176,12 @@ export const AppProvider = ({ children }) => {
           changed = true;
         }
 
+        const sharedRepair = data.repairRequest || null;
+        if (JSON.stringify(sharedRepair) !== JSON.stringify(prev.repairRequest)) {
+          next.repairRequest = sharedRepair;
+          changed = true;
+        }
+
         return changed ? next : prev;
       });
     }, (error) => {
@@ -200,6 +210,8 @@ export const AppProvider = ({ children }) => {
       attachmentStyle: relationshipData.selfInsight?.dominant || null,
       insightCard: relationshipData.selfInsight?.card || null,
       commitment: openCommitment?.text || null,
+      givingLanguage: p.yourGivingLanguage || '',
+      manual: relationshipData.manual || null,
     };
 
     const json = JSON.stringify(slice);
@@ -388,6 +400,58 @@ export const AppProvider = ({ children }) => {
     setDemoMode(false);
   }, []);
 
+  const saveManual = useCallback((manual) => {
+    setRelationshipData((prev) => ({ ...prev, manual: { ...manual, updatedAt: new Date().toISOString() } }));
+  }, []);
+
+  // --- Repair request lifecycle (hurt partner decides what repair looks like)
+  // Writes go straight to the shared doc so the other device sees them live.
+  const writeRepairRequest = useCallback((repairRequest) => {
+    setRelationshipData((prev) => ({ ...prev, repairRequest }));
+    if (!demoMode && relationshipId) {
+      setDoc(doc(db, 'relationships', relationshipId), { repairRequest }, { merge: true })
+        .catch((e) => console.error('Repair request write failed:', e));
+    }
+  }, [demoMode, relationshipId]);
+
+  // Called by the APOLOGIZER when they finish the repair flow.
+  const requestRepair = useCallback((fromName) => {
+    writeRepairRequest({
+      from: currentUser?.uid || 'me',
+      fromName: fromName || '',
+      createdAt: new Date().toISOString(),
+      status: 'choosing',
+      choice: null,
+    });
+  }, [currentUser, writeRepairRequest]);
+
+  // Called by the HURT partner: what would actually help.
+  const chooseRepairOption = useCallback((choice) => {
+    setRelationshipData((prev) => {
+      const rr = prev.repairRequest;
+      if (!rr) return prev;
+      const updated = { ...rr, status: 'chosen', choice, chosenAt: new Date().toISOString() };
+      if (!demoMode && relationshipId) {
+        setDoc(doc(db, 'relationships', relationshipId), { repairRequest: updated }, { merge: true })
+          .catch((e) => console.error('Repair choice write failed:', e));
+      }
+      return { ...prev, repairRequest: updated };
+    });
+  }, [demoMode, relationshipId]);
+
+  // Called by the HURT partner when it genuinely feels repaired — THIS is what
+  // moves the connection needle, not the apology being sent.
+  const closeRepair = useCallback(() => {
+    setRelationshipData((prev) => {
+      const conn = Math.min(100, (prev.connectionLevel ?? 72) + 10);
+      if (!demoMode && relationshipId) {
+        setDoc(doc(db, 'relationships', relationshipId), { repairRequest: null }, { merge: true })
+          .catch((e) => console.error('Repair close write failed:', e));
+      }
+      return { ...prev, repairRequest: null, connectionLevel: conn, weatherMood: 'sunny' };
+    });
+  }, [demoMode, relationshipId]);
+
   const saveSelfInsight = useCallback((insight) => {
     setRelationshipData((prev) => ({
       ...prev,
@@ -485,6 +549,10 @@ export const AppProvider = ({ children }) => {
     addRepairCommitment,
     dismissRepairCommitment,
     saveSelfInsight,
+    saveManual,
+    requestRepair,
+    chooseRepairOption,
+    closeRepair,
     demoMode,
     loadDemoData,
     exitDemo,

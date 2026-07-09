@@ -19,6 +19,8 @@ export const CheckInPage = ({ onNavigate }) => {
   const [needs, setNeeds] = useState([]);
   const [cup, setCup] = useState(currentCup);
   const [submitted, setSubmitted] = useState(false);
+  const [bodyMode, setBodyMode] = useState(false);
+  const [nuance, setNuance] = useState(null);
 
   // Each state carries how it nudges your cup and the shared connection weather.
   const states = [
@@ -34,6 +36,30 @@ export const CheckInPage = ({ onNavigate }) => {
 
   const needOptions = ['Just listen', 'Reassure me', 'Give me space', 'Physical affection', 'Help with something', 'Make me laugh'];
 
+  // Body-first doorway: people who can't name a feeling can usually name a
+  // sensation. Each sensation suggests a starting state.
+  const bodySensations = [
+    { label: 'Tight chest / knot', emoji: '🫀', suggests: 'anxious' },
+    { label: 'Buzzing / everything is loud', emoji: '⚡', suggests: 'overwhelmed' },
+    { label: 'Heavy / numb', emoji: '🪨', suggests: 'disconnected' },
+    { label: 'Hollow / running on empty', emoji: '🕳️', suggests: 'exhausted' },
+    { label: 'Warm / settled', emoji: '☀️', suggests: 'reassured' },
+    { label: 'Light / drawn toward them', emoji: '🎈', suggests: 'affectionate' },
+  ];
+
+  // Granularity chips — moving from "bad" toward the precise feeling is the
+  // actual skill this app is training.
+  const nuances = {
+    overwhelmed: ['Pressured', 'Stretched too thin', 'Dismissed', 'Resentful underneath'],
+    disconnected: ['Unseen', 'Far away from them', 'Lonely next to them', 'Walled off'],
+    anxious: ['Waiting for bad news', 'Unsure where we stand', 'Afraid I did something', 'Need to know we\'re okay'],
+    exhausted: ['Physically drained', 'Emotionally spent', 'Tired of trying', 'Just need rest'],
+    okay: ['Steady', 'Content', 'Coasting', 'Neutral but present'],
+    reassured: ['Safe', 'Settled', 'Trusting', 'At ease'],
+    affectionate: ['Playful', 'Tender', 'Missing them', 'Wanting closeness'],
+    loving: ['Overflowing', 'Grateful', 'Proud of us', 'Deeply connected'],
+  };
+
   const state = states.find((s) => s.id === selected);
 
   const toggleNeed = (n) =>
@@ -45,12 +71,13 @@ export const CheckInPage = ({ onNavigate }) => {
     const newConn = Math.max(0, Math.min(100, currentConn + state.connDelta));
     recordCheckIn({
       stateId: state.id,
-      moodLabel: state.label,
+      moodLabel: nuance ? `${state.label} — ${nuance.toLowerCase()}` : state.label,
       weatherMood: state.weather,
       cupFullness: newCup,
       connectionLevel: newConn,
       note,
       needs,
+      nuance,
     });
     setSubmitted(true);
     setTimeout(() => onNavigate?.('home'), 1800);
@@ -87,7 +114,7 @@ export const CheckInPage = ({ onNavigate }) => {
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.04 }}
-                    onClick={() => setSelected(s.id)}
+                    onClick={() => { setSelected(s.id); setNuance(null); setBodyMode(false); }}
                     className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition ${
                       selected === s.id ? 'bg-bae-peach ring-2 ring-bae-coral' : 'bg-bae-light-peach hover:bg-bae-peach'
                     }`}
@@ -98,9 +125,72 @@ export const CheckInPage = ({ onNavigate }) => {
                 ))}
               </div>
 
+              {/* Body-first doorway for the "I don't know what I feel" days */}
+              {!selected && (
+                <div>
+                  <button
+                    onClick={() => setBodyMode((v) => !v)}
+                    className="w-full text-center text-sm font-medium text-bae-coral py-1"
+                  >
+                    🫀 Not sure? Start with your body instead
+                  </button>
+                  <AnimatePresence>
+                    {bodyMode && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <Card variant="light" className="mt-2">
+                          <p className="text-xs text-bae-navy/60 mb-3">
+                            Where is it sitting in your body right now?
+                          </p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {bodySensations.map((b) => (
+                              <button
+                                key={b.label}
+                                onClick={() => { setSelected(b.suggests); setBodyMode(false); }}
+                                className="p-3 rounded-2xl border border-bae-peach/40 bg-bae-warm-white text-left flex items-center gap-2 hover:bg-bae-light-peach transition"
+                              >
+                                <span className="text-xl">{b.emoji}</span>
+                                <span className="text-xs text-bae-navy leading-tight">{b.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </Card>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+
               <AnimatePresence>
                 {state && (
                   <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                    {/* Granularity: from "bad" to the precise feeling */}
+                    {nuances[state.id] && (
+                      <Card variant="light">
+                        <p className="text-xs font-semibold text-bae-navy/60 mb-2">
+                          More precisely… (optional, but it helps {relationshipData.profile?.partnerName || 'your partner'} understand)
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {nuances[state.id].map((n) => (
+                            <button
+                              key={n}
+                              onClick={() => setNuance(nuance === n ? null : n)}
+                              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
+                                nuance === n
+                                  ? 'bg-bae-coral text-white border-bae-coral'
+                                  : 'bg-white text-bae-navy border-bae-peach'
+                              }`}
+                            >
+                              {n}
+                            </button>
+                          ))}
+                        </div>
+                      </Card>
+                    )}
                     <Card variant="light">
                       <p className="text-sm font-semibold text-bae-navy mb-2">
                         How full is your cup right now?
