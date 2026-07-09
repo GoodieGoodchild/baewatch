@@ -212,6 +212,7 @@ export const AppProvider = ({ children }) => {
       commitment: openCommitment?.text || null,
       givingLanguage: p.yourGivingLanguage || '',
       manual: relationshipData.manual || null,
+      lastLanguageWin: (relationshipData.languageWins || []).slice(-1)[0] || null,
     };
 
     const json = JSON.stringify(slice);
@@ -400,6 +401,18 @@ export const AppProvider = ({ children }) => {
     setDemoMode(false);
   }, []);
 
+  // "It landed 💛" — the receiving partner confirms a love-language moment
+  // actually landed. This is what turns generic advice into calibration:
+  // the giver learns what works for THIS person, and gets the dopamine of
+  // knowing it worked.
+  const recordLanguageWin = useCallback(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    setRelationshipData((prev) => ({
+      ...prev,
+      languageWins: [...(prev.languageWins || []).filter((d) => d !== today), today].slice(-30),
+    }));
+  }, []);
+
   const saveManual = useCallback((manual) => {
     setRelationshipData((prev) => ({ ...prev, manual: { ...manual, updatedAt: new Date().toISOString() } }));
   }, []);
@@ -550,6 +563,7 @@ export const AppProvider = ({ children }) => {
     dismissRepairCommitment,
     saveSelfInsight,
     saveManual,
+    recordLanguageWin,
     requestRepair,
     chooseRepairOption,
     closeRepair,

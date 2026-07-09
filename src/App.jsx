@@ -1,31 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
+// Eager: everything a logged-out visitor needs (splash + auth).
 import SplashScreen from './pages/SplashScreen';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
-import PartnerInvitePage from './pages/PartnerInvitePage';
-import OnboardingPage from './pages/OnboardingPage';
-import HomePage from './pages/HomePage';
-import CheckInPage from './pages/CheckInPage';
-import ConversationCoachPage from './pages/ConversationCoachPage';
-import MemoriesPage from './pages/MemoriesPage';
-import GamesPage from './pages/GamesPage';
-import WeatherDetailsPage from './pages/WeatherDetailsPage';
-import ProfileEditPage from './pages/ProfileEditPage';
-import DailyQuestionPage from './pages/DailyQuestionPage';
-import BucketListPage from './pages/BucketListPage';
-import RepairPage from './pages/RepairPage';
-import UnderstandingMePage from './pages/UnderstandingMePage';
-import LoveLanguagesPage from './pages/LoveLanguagesPage';
-import InsightsPage from './pages/InsightsPage';
-import TimelinePage from './pages/TimelinePage';
-import GrowthPage from './pages/GrowthPage';
-import DatePlannerPage from './pages/DatePlannerPage';
-import LoveLanguageQuizPage from './pages/LoveLanguageQuizPage';
-import ManualPage from './pages/ManualPage';
-import ChatPage from './pages/ChatPage';
+// Lazy: authenticated pages load on demand, keeping first paint light.
+const PartnerInvitePage = lazy(() => import('./pages/PartnerInvitePage'));
+const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
+const HomePage = lazy(() => import('./pages/HomePage'));
+const CheckInPage = lazy(() => import('./pages/CheckInPage'));
+const ConversationCoachPage = lazy(() => import('./pages/ConversationCoachPage'));
+const MemoriesPage = lazy(() => import('./pages/MemoriesPage'));
+const GamesPage = lazy(() => import('./pages/GamesPage'));
+const WeatherDetailsPage = lazy(() => import('./pages/WeatherDetailsPage'));
+const ProfileEditPage = lazy(() => import('./pages/ProfileEditPage'));
+const DailyQuestionPage = lazy(() => import('./pages/DailyQuestionPage'));
+const BucketListPage = lazy(() => import('./pages/BucketListPage'));
+const RepairPage = lazy(() => import('./pages/RepairPage'));
+const UnderstandingMePage = lazy(() => import('./pages/UnderstandingMePage'));
+const LoveLanguagesPage = lazy(() => import('./pages/LoveLanguagesPage'));
+const InsightsPage = lazy(() => import('./pages/InsightsPage'));
+const TimelinePage = lazy(() => import('./pages/TimelinePage'));
+const GrowthPage = lazy(() => import('./pages/GrowthPage'));
+const DatePlannerPage = lazy(() => import('./pages/DatePlannerPage'));
+const LoveLanguageQuizPage = lazy(() => import('./pages/LoveLanguageQuizPage'));
+const ManualPage = lazy(() => import('./pages/ManualPage'));
+const ChatPage = lazy(() => import('./pages/ChatPage'));
 import { AppProvider, useApp } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import './App.css';
+
+// Lightweight loader shown only on a page's first visit while its chunk loads.
+const PageLoader = () => (
+  <div className="min-h-screen bg-bae-cream flex items-center justify-center">
+    <span className="text-4xl animate-pulse">💕</span>
+  </div>
+);
 
 function AppContent() {
   const { currentUser } = useAuth();
@@ -111,7 +120,7 @@ function AppContent() {
   }
 
   return (
-    <React.Fragment>
+    <Suspense fallback={<PageLoader />}>
       {currentPage === 'auth' ? (
         authMode === 'login' ? (
           <LoginPage
@@ -174,7 +183,7 @@ function AppContent() {
       ) : currentPage === 'chat' ? (
         <ChatPage key="chat" onNavigate={handleNavigate} />
       ) : null}
-    </React.Fragment>
+    </Suspense>
   );
 }
 

@@ -142,6 +142,7 @@ export function buildDemoData() {
       insightCard: null, // demo sets partnerInsight directly below instead
       commitment: 'I will say what I need once, clearly, and trust that it landed.',
       givingLanguage: 'acts',
+      lastLanguageWin: dayStr(daysAgo(0)),
       // Maya's Manual of Me — written once on a calm day, surfaced to Sam
       // automatically on days like today.
       manual: {

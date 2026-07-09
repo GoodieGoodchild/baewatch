@@ -82,7 +82,7 @@ const moodEmojis = {
 
 export const HomePage = ({ onNavigate }) => {
   const [activeTab, setActiveTab] = useState('home');
-  const { relationshipData, dismissWeeklyRecap, dismissRepairCommitment, demoMode, exitDemo, isPaired, chooseRepairOption, closeRepair } = useApp();
+  const { relationshipData, dismissWeeklyRecap, dismissRepairCommitment, demoMode, exitDemo, isPaired, chooseRepairOption, closeRepair, recordLanguageWin } = useApp();
   const { currentUser } = useAuth();
   const profile = relationshipData.profile || {};
   const partnerName = profile.partnerName || 'your person';
@@ -606,6 +606,45 @@ export const HomePage = ({ onNavigate }) => {
             </Card>
           )}
         </motion.div>
+
+        {/* "Did it land?" — the receiver's one-tap confirmation that closes the
+            love-language loop and teaches the giver what actually works */}
+        {isPaired || demoMode ? (
+          !(relationshipData.languageWins || []).includes(todayStr) ? (
+            <motion.div variants={itemVariants}>
+              <Card variant="light" hover={false}>
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl flex-shrink-0">💛</span>
+                  <p className="flex-1 text-sm text-bae-navy/75">
+                    Did {partnerName} do something today that made you feel loved?
+                  </p>
+                  <Button variant="outline" size="sm" onClick={recordLanguageWin}>
+                    It landed 💛
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
+          ) : (
+            <motion.div variants={itemVariants}>
+              <Card variant="light" hover={false}>
+                <p className="text-sm text-bae-navy/70 text-center">
+                  💛 You told {partnerName} today's love landed. That's the loop that keeps it coming.
+                </p>
+              </Card>
+            </motion.div>
+          )
+        ) : null}
+
+        {/* Giver's payoff: your partner confirmed your love landed */}
+        {relationshipData.partnerSync?.lastLanguageWin === todayStr && (
+          <motion.div variants={itemVariants}>
+            <Card variant="gradient">
+              <p className="text-sm font-semibold text-bae-navy text-center">
+                🎉 {partnerName} said something you did today <em>landed</em>. Whatever it was — more of that.
+              </p>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Repair Banner */}
         <AnimatePresence>
