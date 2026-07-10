@@ -1,7 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Heart, Bell, LogOut } from 'lucide-react';
+import { Bell, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import logoMark from '../../assets/logo-mark-tight.png';
 
 export const SafetyHeader = ({ showNotification = false }) => {
   const { logout } = useAuth();
@@ -21,7 +22,7 @@ export const SafetyHeader = ({ showNotification = false }) => {
       className="w-full bg-gradient-to-b from-bae-warm-white to-bae-cream px-6 py-4 flex items-center justify-between sticky top-0 z-10 border-b border-bae-peach/20"
     >
       <div className="flex items-center gap-2">
-        <Heart className="w-6 h-6 text-bae-coral fill-bae-coral" />
+        <img src={logoMark} alt="Bae Watch" className="w-7 h-8 object-contain" />
         <h1 className="text-xl font-bold text-bae-navy">Bae Watch</h1>
       </div>
       <div className="flex items-center gap-2">

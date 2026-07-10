@@ -71,12 +71,13 @@ function AppContent() {
     }
   }, [currentUser, inviteCodeFromUrl]);
 
-  // Signing out from anywhere returns to the auth screen.
+  // Signing out from anywhere returns to the auth screen. (Demo mode runs
+  // without a signed-in user — don't evict it.)
   useEffect(() => {
-    if (!currentUser && appReady && currentPage !== 'auth') {
+    if (!currentUser && !demoMode && appReady && currentPage !== 'auth') {
       setCurrentPage('auth');
     }
-  }, [currentUser, appReady, currentPage]);
+  }, [currentUser, demoMode, appReady, currentPage]);
 
   // The gate: home is only reachable once you've told us who you are.
   // Order matters — it's the clinical intake: name/mood -> how you love ->

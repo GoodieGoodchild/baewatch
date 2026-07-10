@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import FloatingHearts from '../components/common/FloatingHearts';
-import baewatch2 from '../assets/baewatch2.jpeg';
+import beachScene from '../assets/beach-scene.png';
 
 export const SplashScreen = ({ onComplete }) => {
   const [progress, setProgress] = useState(0);
@@ -32,7 +32,7 @@ export const SplashScreen = ({ onComplete }) => {
       exit={{ opacity: 0 }}
     >
       <img
-        src={baewatch2}
+        src={beachScene}
         alt="Bae Watch loading background"
         className="absolute inset-0 h-screen w-screen object-cover"
       />

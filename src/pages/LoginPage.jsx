@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import { Heart, Mail, Lock } from 'lucide-react';
+import logoMark from '../assets/logo-mark-tight.png';
 
 export const LoginPage = ({ onSwitchToSignup, onExploreDemo }) => {
   const [email, setEmail] = useState('');
@@ -56,13 +57,13 @@ export const LoginPage = ({ onSwitchToSignup, onExploreDemo }) => {
         className="w-full max-w-md space-y-8"
       >
         <div className="text-center space-y-4">
-          <motion.div
-            animate={{ scale: [1, 1.1, 1] }}
-            transition={{ repeat: Infinity, duration: 2 }}
-            className="text-6xl"
-          >
-            💕
-          </motion.div>
+          <motion.img
+            src={logoMark}
+            alt="Bae Watch"
+            animate={{ y: [0, -8, 0] }}
+            transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
+            className="w-24 mx-auto object-contain"
+          />
           <h1 className="text-3xl font-bold text-bae-navy">Welcome Back</h1>
           <p className="text-bae-navy/70">Sign in to your relationship</p>
         </div>

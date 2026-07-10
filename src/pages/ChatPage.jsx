@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase';
 import { collection, addDoc, query, orderBy, limitToLast, onSnapshot } from 'firebase/firestore';
 import { isAIConfigured, chatJSON } from '../services/aiService';
+import baeAvatar from '../assets/bae-avatar.png';
 
 // Couple chat — a private space for the two of you, with Bae (the AI coach)
 // one tap away. Type normally to talk to each other; tap "Ask Bae" and your
@@ -127,18 +128,21 @@ export const ChatPage = ({ onNavigate }) => {
           </Card>
         )}
         {messages.map((m) => (
-          <div key={m.id} className={`flex ${isMine(m) ? 'justify-end' : 'justify-start'}`}>
+          <div key={m.id} className={`flex items-end gap-2 ${isMine(m) ? 'justify-end' : 'justify-start'}`}>
+            {m.senderId === 'bae' && (
+              <img src={baeAvatar} alt="Bae" className="w-9 h-9 rounded-full bg-white border border-bae-peach/50 object-cover flex-shrink-0" />
+            )}
             <div
               className={`max-w-[80%] rounded-3xl px-4 py-2.5 ${
                 m.senderId === 'bae'
-                  ? 'bg-gradient-to-br from-purple-100 to-indigo-100 border border-purple-200'
+                  ? 'bg-gradient-to-br from-bae-light-peach to-bae-peach border border-bae-salmon/40'
                   : isMine(m)
                     ? 'bg-bae-coral text-white rounded-br-md'
                     : 'bg-bae-warm-white border border-bae-peach/40 rounded-bl-md'
               }`}
             >
               {m.senderId === 'bae' && (
-                <p className="text-[10px] font-bold text-purple-500 mb-0.5">✨ BAE</p>
+                <p className="text-[10px] font-bold text-bae-coral mb-0.5">✨ BAE</p>
               )}
               {!isMine(m) && m.senderId !== 'bae' && (
                 <p className="text-[10px] font-bold text-bae-coral mb-0.5">{m.senderName?.toUpperCase()}</p>
@@ -148,9 +152,10 @@ export const ChatPage = ({ onNavigate }) => {
           </div>
         ))}
         {baeThinking && (
-          <div className="flex justify-start">
-            <div className="bg-gradient-to-br from-purple-100 to-indigo-100 border border-purple-200 rounded-3xl px-4 py-2.5">
-              <p className="text-sm text-purple-500 animate-pulse">✨ Bae is thinking…</p>
+          <div className="flex items-end gap-2 justify-start">
+            <img src={baeAvatar} alt="Bae" className="w-9 h-9 rounded-full bg-white border border-bae-peach/50 object-cover flex-shrink-0" />
+            <div className="bg-gradient-to-br from-bae-light-peach to-bae-peach border border-bae-salmon/40 rounded-3xl px-4 py-2.5">
+              <p className="text-sm text-bae-coral animate-pulse">✨ Bae is thinking…</p>
             </div>
           </div>
         )}
