@@ -59,6 +59,8 @@ function AppContent() {
       const invite = params.get('invite');
       if (invite) {
         setInviteCodeFromUrl(invite);
+        // An invited partner is almost always a NEW user — open signup, not login.
+        setAuthMode('signup');
       }
     }
   }, []);
@@ -69,15 +71,24 @@ function AppContent() {
     }
   }, [currentUser, inviteCodeFromUrl]);
 
+  // Signing out from anywhere returns to the auth screen.
+  useEffect(() => {
+    if (!currentUser && appReady && currentPage !== 'auth') {
+      setCurrentPage('auth');
+    }
+  }, [currentUser, appReady, currentPage]);
+
   // The gate: home is only reachable once you've told us who you are.
   // Order matters — it's the clinical intake: name/mood -> how you love ->
   // your attachment patterns -> connect your partner. Each step's data guides
   // the couple from day one, so nobody starts blind.
+  // invitePending: you've generated a code and sent it — you may explore while
+  // your partner signs up (the home connect card keeps pairing one tap away).
   const gatePage = () => {
     if (!relationshipData.profile?.yourName) return 'onboarding';
     if (!relationshipData.profile?.yourLoveLanguage) return 'love-quiz';
     if (!relationshipData.selfInsight?.dominant) return 'understanding-me';
-    if (!isPaired && !demoMode) return 'partner-invite';
+    if (!isPaired && !demoMode && !relationshipData.profile?.invitePending) return 'partner-invite';
     return 'home';
   };
 

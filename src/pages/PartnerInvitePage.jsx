@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
@@ -25,8 +25,8 @@ const withTimeout = (promise, ms = 8000) =>
   ]);
 
 export const PartnerInvitePage = ({ initialInviteCode, onComplete }) => {
-  const { currentUser } = useAuth();
-  const { isPaired } = useApp();
+  const { currentUser, logout } = useAuth();
+  const { isPaired, updateProfile } = useApp();
 
   const [myCode, setMyCode] = useState('');
   const [inviteLink, setInviteLink] = useState('');
@@ -36,10 +36,28 @@ export const PartnerInvitePage = ({ initialInviteCode, onComplete }) => {
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState('');
   const [justJoined, setJustJoined] = useState(false);
+  const autoJoinTried = useRef(false);
 
   useEffect(() => {
     if (initialInviteCode) setEnterCode(initialInviteCode.toUpperCase());
   }, [initialInviteCode]);
+
+  // Invited via link: they tapped their partner's URL, signed up, and landed
+  // here with the code already known — connect them automatically. One attempt
+  // only; if it fails the prefilled manual flow is right there.
+  useEffect(() => {
+    if (initialInviteCode && currentUser && !isPaired && !justJoined && !autoJoinTried.current) {
+      autoJoinTried.current = true;
+      handleJoinWithCode(initialInviteCode.toUpperCase());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialInviteCode, currentUser]);
+
+  // Inviter has done their part — let them into the app while they wait.
+  const exploreWhileWaiting = () => {
+    updateProfile({ invitePending: true });
+    onComplete?.();
+  };
 
   const generateInviteCode = async () => {
     if (!currentUser) return;
@@ -91,8 +109,8 @@ export const PartnerInvitePage = ({ initialInviteCode, onComplete }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleJoinWithCode = async () => {
-    const code = enterCode.trim().toUpperCase();
+  const handleJoinWithCode = async (codeOverride) => {
+    const code = (typeof codeOverride === 'string' ? codeOverride : enterCode).trim().toUpperCase();
     if (!code || !currentUser) return;
     setJoining(true);
     setError('');
@@ -236,8 +254,11 @@ export const PartnerInvitePage = ({ initialInviteCode, onComplete }) => {
                     </Button>
                   </div>
                   <p className="text-xs text-bae-navy/50 text-center">
-                    Waiting for them to join… this screen updates the moment they do ✨
+                    Waiting for them to join… you'll be connected the moment they do ✨
                   </p>
+                  <Button variant="outline" className="w-full" onClick={exploreWhileWaiting}>
+                    Explore the app while you wait →
+                  </Button>
                 </div>
               )}
             </Card>
@@ -281,6 +302,11 @@ export const PartnerInvitePage = ({ initialInviteCode, onComplete }) => {
 
             <p className="text-center text-xs text-bae-navy/50">
               Bae Watch opens once you're both here — it takes two. 💕
+            </p>
+            <p className="text-center">
+              <button onClick={() => logout()} className="text-xs text-bae-navy/40 underline hover:text-bae-coral">
+                Sign out
+              </button>
             </p>
           </>
         )}
