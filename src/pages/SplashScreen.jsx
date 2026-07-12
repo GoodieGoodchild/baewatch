@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import FloatingHearts from '../components/common/FloatingHearts';
-import beachScene from '../assets/beach-scene.png';
+import beachScene from '../assets/beach-scene.jpg';
+import logoMark from '../assets/logo-mark-tight.png';
 
 export const SplashScreen = ({ onComplete }) => {
   const [progress, setProgress] = useState(0);
   const [logoError, setLogoError] = useState(false);
-  const logoSrc = '/bae-watch-logo.svg';
+  const logoSrc = logoMark;
 
 
   useEffect(() => {
