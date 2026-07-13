@@ -8,6 +8,8 @@ import { Heart, Star, Trophy, Gamepad2, Sparkles, RefreshCw } from 'lucide-react
 import { useApp } from '../context/AppContext';
 import { isAIConfigured } from '../services/aiService';
 import { generateLoveQuestion, polishGratitudeNote } from '../services/funService';
+import SimultaneousReveal from '../components/games/SimultaneousReveal';
+import SurpriseDrops from '../components/games/SurpriseDrops';
 
 const baseLoveQuestions = [
   'What small thing did I do recently that made you feel loved?',
@@ -371,6 +373,16 @@ export const GamesPage = ({ onNavigate }) => {
           <h2 className="text-2xl font-bold text-bae-navy mb-2">Relationship Games</h2>
           <p className="text-sm text-bae-navy/70">Connection, curiosity, and laughter — with Bae as your game master. ✨</p>
         </motion.div>
+
+        {/* Play together (live, synced across both phones) */}
+        {!currentGame && (
+          <div className="space-y-4 mb-2">
+            <p className="text-xs font-semibold text-bae-coral uppercase tracking-wide">🔗 Play together — live</p>
+            <SimultaneousReveal />
+            <SurpriseDrops />
+            <p className="text-xs font-semibold text-bae-navy/40 uppercase tracking-wide pt-2">Or a quick solo-start game</p>
+          </div>
+        )}
 
         {!currentGame && (
           <div className="grid gap-4">

@@ -69,6 +69,10 @@ export const AppProvider = ({ children }) => {
     manual: null,
     // Live repair request on the shared doc: { from, fromName, status, choice }.
     repairRequest: null,
+    // Live "Simultaneous Reveal" game on the shared doc (both answer blind).
+    gameSession: null,
+    // Async surprise drops: [{ id, from, fromName, text, opened, landed }].
+    surpriseDrops: [],
     // Per-user AI usage budget. Each AI generation costs tokens (and money),
     // so users get a small, fixed number of attempts per feature.
     aiUsage: {},
@@ -185,6 +189,18 @@ export const AppProvider = ({ children }) => {
         const sharedRepair = data.repairRequest || null;
         if (JSON.stringify(sharedRepair) !== JSON.stringify(prev.repairRequest)) {
           next.repairRequest = sharedRepair;
+          changed = true;
+        }
+
+        const sharedGame = data.gameSession || null;
+        if (JSON.stringify(sharedGame) !== JSON.stringify(prev.gameSession)) {
+          next.gameSession = sharedGame;
+          changed = true;
+        }
+
+        const sharedDrops = data.surpriseDrops || [];
+        if (JSON.stringify(sharedDrops) !== JSON.stringify(prev.surpriseDrops)) {
+          next.surpriseDrops = sharedDrops;
           changed = true;
         }
 
@@ -407,6 +423,80 @@ export const AppProvider = ({ children }) => {
     setDemoMode(false);
   }, []);
 
+  // --- Games on the shared relationship doc --------------------------------
+  // Writes go to relationships/{id}; both devices see them live via onSnapshot.
+  // In demo mode there's no shared doc, so everything stays in local state.
+  const myUid = () => (demoMode ? 'me' : currentUser?.uid);
+
+  const writeShared = useCallback((patch, localUpdater) => {
+    setRelationshipData((prev) => localUpdater(prev));
+    if (!demoMode && relationshipId) {
+      setDoc(doc(db, 'relationships', relationshipId), patch, { merge: true })
+        .catch((e) => console.error('Shared game write failed:', e));
+    }
+  }, [demoMode, relationshipId]);
+
+  // Simultaneous Reveal: start a round with a prompt both partners answer blind.
+  const startRevealGame = useCallback((prompt, spark) => {
+    const session = {
+      type: 'reveal', prompt, spark: spark || '',
+      answers: {}, status: 'answering', reflection: '',
+      startedBy: myUid(), createdAt: new Date().toISOString(),
+    };
+    writeShared({ gameSession: session }, (prev) => ({ ...prev, gameSession: session }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [writeShared, demoMode, currentUser]);
+
+  // Submit YOUR answer. If the partner already answered, flip to 'revealed'.
+  // In demo mode there's no partner device, so we simulate one for playability.
+  const submitRevealAnswer = useCallback((answer, reflection) => {
+    setRelationshipData((prev) => {
+      const s = prev.gameSession;
+      if (!s) return prev;
+      let answers = { ...(s.answers || {}), [myUid()]: answer };
+      let refl = s.reflection;
+      if (demoMode) {
+        answers = { ...answers, maya: "Somewhere quiet by the sea, with you and nothing on the calendar." };
+        refl = "You both drifted somewhere quiet and unhurried — that's a shared compass. 🧭";
+      }
+      const bothIn = Object.keys(answers).length >= 2;
+      const session = { ...s, answers, status: bothIn ? 'revealed' : 'answering', reflection: bothIn ? (reflection || refl || '') : refl };
+      if (!demoMode && relationshipId) {
+        setDoc(doc(db, 'relationships', relationshipId), { gameSession: session }, { merge: true }).catch((e) => console.error(e));
+      }
+      return { ...prev, gameSession: session };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demoMode, relationshipId, currentUser]);
+
+  const endRevealGame = useCallback(() => {
+    writeShared({ gameSession: null }, (prev) => ({ ...prev, gameSession: null }));
+  }, [writeShared]);
+
+  // Async Surprise Drops.
+  const plantSurprise = useCallback((text, fromName) => {
+    setRelationshipData((prev) => {
+      const drop = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, from: myUid(), fromName: fromName || '', text, opened: false, landed: false, createdAt: new Date().toISOString() };
+      const surpriseDrops = [...(prev.surpriseDrops || []), drop].slice(-30);
+      if (!demoMode && relationshipId) {
+        setDoc(doc(db, 'relationships', relationshipId), { surpriseDrops }, { merge: true }).catch((e) => console.error(e));
+      }
+      return { ...prev, surpriseDrops };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demoMode, relationshipId, currentUser]);
+
+  const updateSurprise = useCallback((id, patch) => {
+    setRelationshipData((prev) => {
+      const surpriseDrops = (prev.surpriseDrops || []).map((d) => (d.id === id ? { ...d, ...patch } : d));
+      if (!demoMode && relationshipId) {
+        setDoc(doc(db, 'relationships', relationshipId), { surpriseDrops }, { merge: true }).catch((e) => console.error(e));
+      }
+      return { ...prev, surpriseDrops };
+    });
+  }, [demoMode, relationshipId]);
+  // -------------------------------------------------------------------------
+
   // AI usage budget helpers. aiRemaining(kind) tells the UI how many attempts
   // are left; spendAiUse(kind) records one (call right before an AI request).
   const aiRemaining = useCallback(
@@ -586,6 +676,12 @@ export const AppProvider = ({ children }) => {
     recordLanguageWin,
     aiRemaining,
     spendAiUse,
+    startRevealGame,
+    submitRevealAnswer,
+    endRevealGame,
+    plantSurprise,
+    updateSurprise,
+    myUid: myUid(),
     requestRepair,
     chooseRepairOption,
     closeRepair,

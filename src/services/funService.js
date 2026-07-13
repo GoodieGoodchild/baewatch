@@ -18,6 +18,7 @@ function coupleContext({ profile = {}, selfInsight, partnerInsight }) {
     profile.partnerLoveLanguage ? `B's love language: ${profile.partnerLoveLanguage}` : null,
     selfInsight?.dominant ? `A's attachment style: ${selfInsight.dominant}` : null,
     partnerInsight?.dominant ? `B's attachment style: ${partnerInsight.dominant}` : null,
+    profile.personality?.headline ? `A's personality: ${profile.personality.headline}` : null,
   ];
   return bits.filter(Boolean).join('\n');
 }
@@ -58,6 +59,42 @@ Return JSON: { "polished": "...", "why": "one line on what you tuned for their l
     },
   ];
   return chatJSON(messages, { temperature: 0.8, maxTokens: 250 });
+}
+
+// Static prompt bank for Simultaneous Reveal — used when AI is unavailable so
+// the game always works. Warm, revealing, answerable in a sentence.
+export const revealPrompts = [
+  'Where do you secretly hope we are one year from now?',
+  "What's one small thing I do that you'd miss the most?",
+  'What made you feel closest to me this week?',
+  "What's something you wish we did more of?",
+  'If we ran away for a weekend right now, where to?',
+  "What's a tiny worry you haven't said out loud lately?",
+  'What does "a really good day together" look like to you?',
+  "What's something you're proud of us for?",
+  'When do you feel most like yourself around me?',
+  "What's one way I could make next week easier for you?",
+];
+
+/**
+ * After both partners answer a reveal prompt, Bae reads both and drops one warm
+ * line — naming the alignment or the interesting gap. Returns { line }.
+ */
+export async function generateRevealReflection({ couple, prompt, answerA, answerB, nameA, nameB }) {
+  const messages = [
+    { role: 'system', content: SYSTEM },
+    {
+      role: 'user',
+      content: `This couple:\n${coupleContext(couple)}\n
+Prompt: "${prompt}"
+${nameA || 'Partner A'} answered: "${answerA}"
+${nameB || 'Partner B'} answered: "${answerB}"
+Drop ONE warm, playful line to both of them — celebrate the alignment if they
+match, or point out the sweet/funny gap if they differ. Max 25 words.
+Return JSON: { "line": "..." }`,
+    },
+  ];
+  return chatJSON(messages, { temperature: 0.85, maxTokens: 120 });
 }
 
 /**

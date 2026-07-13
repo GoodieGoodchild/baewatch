@@ -25,6 +25,7 @@ const DatePlannerPage = lazy(() => import('./pages/DatePlannerPage'));
 const LoveLanguageQuizPage = lazy(() => import('./pages/LoveLanguageQuizPage'));
 const ManualPage = lazy(() => import('./pages/ManualPage'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
+const PersonalityQuizPage = lazy(() => import('./pages/PersonalityQuizPage'));
 import { AppProvider, useApp } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import './App.css';
@@ -204,6 +205,8 @@ function AppContent() {
         <ManualPage key="manual" onNavigate={handleNavigate} />
       ) : currentPage === 'chat' ? (
         <ChatPage key="chat" onNavigate={handleNavigate} />
+      ) : currentPage === 'personality' ? (
+        <PersonalityQuizPage key="personality" onNavigate={handleNavigate} />
       ) : null}
     </Suspense>
   );

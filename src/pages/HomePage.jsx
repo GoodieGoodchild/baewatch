@@ -5,9 +5,7 @@ import BottomNavigation from '../components/common/BottomNavigation';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import RelationshipWeatherWidget from '../components/widgets/RelationshipWeatherWidget';
-import ConnectionLevelWidget from '../components/widgets/ConnectionLevelWidget';
-import InsightCard from '../components/cards/InsightCard';
-import { Heart, Zap, TrendingUp, Edit, X, CheckCircle } from 'lucide-react';
+import { Edit, CheckCircle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { partnerReminder } from '../services/loveLanguages';
@@ -167,7 +165,11 @@ export const HomePage = ({ onNavigate }) => {
   const patternEntry = Object.entries(patternCounts).find(([, n]) => n >= 3);
   const patternLabel = patternEntry ? { overwhelmed: 'overwhelmed', disconnected: 'disconnected', anxious: 'anxious' }[patternEntry[0]] : null;
   const llReminder = partnerReminder(profile.partnerName, profile.partnerLoveLanguage);
-  const [repairDismissed, setRepairDismissed] = useState(false);
+
+  // Day-2 personality unlock: surfaces once the user has returned across 2+
+  // distinct days (so it's not front-loaded) and hasn't taken it yet.
+  const distinctDays = new Set(checkInHistory.map((c) => c.date)).size;
+  const showPersonalityUnlock = distinctDays >= 2 && !profile.personality;
 
   const activeBucketItems = bucketList.filter((i) => !i.completed);
   const topBucketPreview = activeBucketItems.slice(0, 2);
@@ -192,12 +194,8 @@ export const HomePage = ({ onNavigate }) => {
     visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } },
   };
 
-  const cupMessage = () => {
-    if (cupFullness >= 80) return 'Their cup is feeling full and warm.';
-    if (cupFullness >= 60) return 'They are doing okay, but a refill would be nice.';
-    if (cupFullness >= 40) return 'Their cup is low — a thoughtful gesture will help.';
-    return 'Their cup is nearly empty. Give them extra care today.';
-  };
+  const hour = new Date().getHours();
+  const greeting = hour < 5 ? 'Still up, love' : hour < 12 ? 'Good morning, love' : hour < 18 ? 'Good afternoon, love' : 'Good evening, love';
 
   return (
     <motion.div
@@ -218,7 +216,7 @@ export const HomePage = ({ onNavigate }) => {
       <div className="max-w-md mx-auto px-4 py-6 space-y-6">
         <motion.div variants={itemVariants} className="text-center mt-6">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <p className="text-bae-navy/60 text-sm">Good morning, love 💕</p>
+            <p className="text-bae-navy/60 text-sm">{greeting} 💕</p>
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => onNavigate?.('profile-edit')}
@@ -282,7 +280,11 @@ export const HomePage = ({ onNavigate }) => {
                   <p className="text-base font-bold text-bae-navy">💌 Your Week in Love</p>
                 </div>
                 {hasEnoughData ? (
-                  <div className="grid grid-cols-2 gap-3 mb-4">
+                  <button
+                    onClick={() => onNavigate?.('insights')}
+                    className="grid grid-cols-2 gap-3 mb-4 w-full text-left"
+                    title="See the full breakdown in Insights"
+                  >
                     <div className="bg-white/50 rounded-xl p-3 text-center">
                       <p className="text-xl font-bold text-bae-coral">{weekCheckIns.length}</p>
                       <p className="text-xs text-bae-navy/60">Check-ins this week</p>
@@ -301,7 +303,8 @@ export const HomePage = ({ onNavigate }) => {
                       <p className="text-xl font-bold">{topMood ? moodEmojis[topMood] || '💕' : '💕'}</p>
                       <p className="text-xs text-bae-navy/60">Top mood</p>
                     </div>
-                  </div>
+                    <p className="col-span-2 text-center text-[11px] text-bae-navy/50">Tap for the full breakdown →</p>
+                  </button>
                 ) : (
                   <p className="text-sm text-bae-navy/60 mb-4">Start checking in daily to see your weekly recap 💕</p>
                 )}
@@ -318,11 +321,14 @@ export const HomePage = ({ onNavigate }) => {
         </AnimatePresence>
 
         <motion.div variants={itemVariants}>
-          <RelationshipWeatherWidget
-            connectionLevel={relationshipData.connectionLevel}
-            cupFullness={cupFullness}
-            mood={relationshipData.weatherMood}
-          />
+          {/* Whole weather hero taps through to the fuller Weather page */}
+          <div onClick={() => onNavigate?.('weather')} className="cursor-pointer">
+            <RelationshipWeatherWidget
+              connectionLevel={relationshipData.connectionLevel}
+              cupFullness={cupFullness}
+              mood={relationshipData.weatherMood}
+            />
+          </div>
           <button
             onClick={() => onNavigate?.('insights')}
             className="w-full mt-2 text-center text-sm font-semibold text-bae-coral py-2 hover:bg-bae-peach/20 rounded-xl transition"
@@ -330,6 +336,26 @@ export const HomePage = ({ onNavigate }) => {
             📊 View Insights & Health Score →
           </button>
         </motion.div>
+
+        {/* Day-2 personality unlock */}
+        {showPersonalityUnlock && (
+          <motion.div variants={itemVariants}>
+            <Card variant="gradient" onClick={() => onNavigate?.('personality')}>
+              <div className="flex items-start gap-3">
+                <motion.span className="text-3xl flex-shrink-0" animate={{ rotate: [0, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 3 }}>🧬</motion.span>
+                <div className="flex-1">
+                  <h3 className="text-base font-semibold text-bae-navy">Day 2: discover your type</h3>
+                  <p className="text-xs text-bae-navy/60 mt-0.5">
+                    A quick "how you're wired" quiz — it sharpens everything Bae tells you both. 8 taps.
+                  </p>
+                </div>
+              </div>
+              <Button variant="primary" size="sm" className="w-full mt-3" onClick={() => onNavigate?.('personality')}>
+                Take the 2-minute quiz
+              </Button>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Quick links — manual, timeline, growth, date nights */}
         <motion.div variants={itemVariants} className="grid grid-cols-4 gap-2">
@@ -471,6 +497,9 @@ export const HomePage = ({ onNavigate }) => {
               <p className="text-xs text-bae-navy/50 mt-2">
                 This is how to show up for {partnerName} today.
               </p>
+              <Button variant="secondary" size="sm" className="w-full mt-3" onClick={() => onNavigate?.('chat')}>
+                Reach out to {partnerName} 💬
+              </Button>
             </Card>
           </motion.div>
         )}
@@ -646,38 +675,29 @@ export const HomePage = ({ onNavigate }) => {
           </motion.div>
         )}
 
-        {/* Repair Banner */}
-        <AnimatePresence>
-          {showRepairBanner && !repairDismissed && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center justify-between"
-            >
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-blue-700">💙 Repair Mode</p>
-                <p className="text-xs text-blue-600/70 mt-0.5">Let's reconnect — a guided repair toolkit awaits.</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => onNavigate?.('repair')}
-                  className="text-xs font-semibold text-white bg-blue-500 rounded-xl px-3 py-1.5"
-                >
-                  Start
-                </motion.button>
-                <motion.button
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setRepairDismissed(true)}
-                  className="p-1 hover:bg-blue-100 rounded-full"
-                >
-                  <X className="w-4 h-4 text-blue-400" />
-                </motion.button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Repair — always reachable, but louder when the weather turns.
+            (Merges the old always-on "Had a disagreement?" card and the
+            conditional banner into one adaptive entry point.) */}
+        <motion.div variants={itemVariants}>
+          <div
+            onClick={() => onNavigate?.('repair')}
+            className={`rounded-2xl p-4 flex items-center justify-between cursor-pointer transition ${
+              showRepairBanner ? 'bg-blue-50 border border-blue-200' : 'bg-bae-warm-white border border-bae-peach/40'
+            }`}
+          >
+            <div className="flex-1">
+              <p className={`text-sm font-semibold ${showRepairBanner ? 'text-blue-700' : 'text-bae-navy'}`}>
+                💙 {showRepairBanner ? 'Rough patch? Let’s reconnect' : 'Had a disagreement?'}
+              </p>
+              <p className={`text-xs mt-0.5 ${showRepairBanner ? 'text-blue-600/70' : 'text-bae-navy/60'}`}>
+                A guided repair path — own your part, listen fully, reconnect.
+              </p>
+            </div>
+            <span className={`text-xs font-semibold text-white rounded-xl px-3 py-1.5 ${showRepairBanner ? 'bg-blue-500' : 'bg-bae-coral'}`}>
+              Start
+            </span>
+          </div>
+        </motion.div>
 
         {/* Daily Question Card */}
         <motion.div variants={itemVariants}>
@@ -701,39 +721,10 @@ export const HomePage = ({ onNavigate }) => {
           </Card>
         </motion.div>
 
-        <motion.div variants={itemVariants}>
-          <Card variant="light">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-semibold text-bae-navy">Partner Cup</h3>
-                <p className="text-sm text-bae-navy/70">
-                  How full is {partnerName}'s cup today?
-                </p>
-              </div>
-              <span className="text-2xl font-bold text-bae-coral">{cupFullness}%</span>
-            </div>
-            <div className="h-3 w-full rounded-full bg-bae-peach/50 overflow-hidden mb-3">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-bae-coral to-bae-salmon"
-                style={{ width: `${cupFullness}%` }}
-              />
-            </div>
-            <p className="text-sm text-bae-navy/70">{cupMessage()}</p>
-          </Card>
-        </motion.div>
-
-        <motion.div variants={itemVariants}>
-          <ConnectionLevelWidget level={relationshipData.connectionLevel} />
-        </motion.div>
-
-        <motion.div variants={itemVariants}>
-          <InsightCard
-            title="Today's Insight"
-            insight={`Your partner is currently ${profile.currentMood?.toLowerCase() || 'in a quiet mood'}.`}
-            suggestion={`Try ${profile.supportPreference?.toLowerCase() || 'a supportive gesture'} today.`}
-            action="Ask: What would help you feel most cared for?"
-          />
-        </motion.div>
+        {/* Cut from Home (per UX audit): the "Partner Cup" card, the standalone
+            ConnectionLevelWidget, and the "Today's Insight" InsightCard. All
+            three duplicated the weather-widget vitals or were fed by stale
+            manual profile fields. Their data lives on Weather & Insights pages. */}
 
         {/* Bucket List Preview */}
         <motion.div variants={itemVariants}>
@@ -778,64 +769,10 @@ export const HomePage = ({ onNavigate }) => {
           </motion.div>
         )}
 
-        <motion.div variants={itemVariants}>
-          <Card variant="peach">
-            <div className="flex items-center gap-3">
-              <span className="text-3xl flex-shrink-0">💙</span>
-              <div className="flex-1">
-                <h3 className="text-base font-semibold text-bae-navy">Had a disagreement?</h3>
-                <p className="text-xs text-bae-navy/60 mt-0.5">
-                  A guided repair process — own your part, listen fully, reconnect.
-                </p>
-              </div>
-            </div>
-            <Button variant="primary" onClick={() => onNavigate?.('repair')} className="w-full mt-3" size="sm">
-              Start Repair Guide
-            </Button>
-          </Card>
-        </motion.div>
-
-        <motion.div variants={itemVariants}>
-          <Card variant="light">
-            <h3 className="text-lg font-semibold text-bae-navy mb-4">
-              Suggested Actions
-            </h3>
-            <div className="space-y-3">
-              {[
-                {
-                  icon: Zap,
-                  title: 'Quick Win',
-                  description: 'Make their coffee exactly how they like it',
-                },
-                {
-                  icon: Heart,
-                  title: 'Affection',
-                  description: 'Give them a caring compliment today',
-                },
-                {
-                  icon: TrendingUp,
-                  title: 'Conversation',
-                  description: `Ask: How can I best fill ${partnerName}'s cup?`,
-                },
-              ].map((action, idx) => {
-                const Icon = action.icon;
-                return (
-                  <motion.button
-                    key={idx}
-                    whileHover={{ x: 4 }}
-                    className="w-full flex items-start gap-3 p-3 bg-bae-light-peach rounded-xl hover:bg-bae-peach transition-colors text-left"
-                  >
-                    <Icon className="w-5 h-5 text-bae-coral flex-shrink-0 mt-1" />
-                    <div>
-                      <p className="font-semibold text-sm text-bae-navy">{action.title}</p>
-                      <p className="text-xs text-bae-navy/70">{action.description}</p>
-                    </div>
-                  </motion.button>
-                );
-              })}
-            </div>
-          </Card>
-        </motion.div>
+        {/* "Had a disagreement?" card and "Suggested Actions" removed:
+            the repair card duplicated the contextual repair banner above, and
+            Suggested Actions was three hover-animated buttons with no onClick
+            (fake interactivity) and generic, non-personalised copy. */}
       </div>
 
       <BottomNavigation activeTab={activeTab} onTabChange={handleTabChange} />

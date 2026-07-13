@@ -253,6 +253,10 @@ export function buildDemoData() {
     growthGoals: [],
     plannedDates: [],
     timeline: [],
+    // An unopened surprise from Maya, waiting for Sam (shows the drop mechanic).
+    surpriseDrops: [
+      { id: 'demo-drop-1', from: 'maya', fromName: 'Maya', text: "Reminder: you're the calm I come home to. Kiss me when you read this. 😘", opened: false, landed: false, createdAt: iso(daysAgo(0)) },
+    ],
   };
 }
 

@@ -5,7 +5,7 @@ export const Card = ({
   children,
   className = '',
   variant = 'light',
-  hover = true,
+  hover, // default: only lift when the card is actually tappable (has onClick)
   ...props
 }) => {
   const variants = {
@@ -14,11 +14,16 @@ export const Card = ({
     gradient: 'bg-gradient-to-br from-bae-light-peach to-bae-warm-white border border-bae-peach/40',
   };
 
+  // A card should only "lift" on hover if tapping it does something — otherwise
+  // it falsely advertises interactivity. Honour an explicit `hover` prop if set.
+  const isInteractive = hover !== undefined ? hover : Boolean(props.onClick);
+
   return (
     <motion.div
-      whileHover={hover ? { y: -4 } : {}}
+      whileHover={isInteractive ? { y: -4 } : {}}
+      whileTap={isInteractive ? { scale: 0.99 } : {}}
       transition={{ type: 'spring', stiffness: 300, damping: 10 }}
-      className={`rounded-3xl p-6 shadow-md hover:shadow-lg transition-shadow duration-200 ${variants[variant]} ${className}`}
+      className={`rounded-3xl p-6 shadow-md transition-shadow duration-200 ${isInteractive ? 'hover:shadow-lg cursor-pointer' : ''} ${variants[variant]} ${className}`}
       {...props}
     >
       {children}
