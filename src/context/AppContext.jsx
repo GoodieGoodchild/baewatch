@@ -69,7 +69,13 @@ export const AppProvider = ({ children }) => {
     manual: null,
     // Live repair request on the shared doc: { from, fromName, status, choice }.
     repairRequest: null,
+    // Per-user AI usage budget. Each AI generation costs tokens (and money),
+    // so users get a small, fixed number of attempts per feature.
+    aiUsage: {},
   });
+
+  // How many times a user may invoke each AI feature. "Get it right in 2."
+  const AI_LIMITS = { card: 2, bridge: 1, forecast: 3, reframe: 3, gameQuestion: 5, gratitude: 5 };
   // The shared relationships/{id} doc both partners read/write once paired.
   const [relationshipId, setRelationshipId] = useState(null);
 
@@ -401,6 +407,20 @@ export const AppProvider = ({ children }) => {
     setDemoMode(false);
   }, []);
 
+  // AI usage budget helpers. aiRemaining(kind) tells the UI how many attempts
+  // are left; spendAiUse(kind) records one (call right before an AI request).
+  const aiRemaining = useCallback(
+    (kind) => Math.max(0, (AI_LIMITS[kind] ?? 0) - ((relationshipData.aiUsage || {})[kind] || 0)),
+    [relationshipData.aiUsage]
+  );
+
+  const spendAiUse = useCallback((kind) => {
+    setRelationshipData((prev) => ({
+      ...prev,
+      aiUsage: { ...(prev.aiUsage || {}), [kind]: ((prev.aiUsage || {})[kind] || 0) + 1 },
+    }));
+  }, []);
+
   // "It landed 💛" — the receiving partner confirms a love-language moment
   // actually landed. This is what turns generic advice into calibration:
   // the giver learns what works for THIS person, and gets the dopamine of
@@ -564,6 +584,8 @@ export const AppProvider = ({ children }) => {
     saveSelfInsight,
     saveManual,
     recordLanguageWin,
+    aiRemaining,
+    spendAiUse,
     requestRepair,
     chooseRepairOption,
     closeRepair,

@@ -19,9 +19,10 @@ import {
 const STEPS = ['intro', 'quiz', 'trauma', 'context', 'words', 'result'];
 
 export const UnderstandingMePage = ({ onNavigate }) => {
-  const { relationshipData, saveSelfInsight } = useApp();
+  const { relationshipData, saveSelfInsight, aiRemaining, spendAiUse } = useApp();
   const yourName = relationshipData.profile?.yourName || '';
   const existing = relationshipData.selfInsight;
+  const cardTriesLeft = aiRemaining('card'); // 2, then 0 — "get it right in 2"
 
   const [stepIdx, setStepIdx] = useState(existing?.card ? STEPS.length - 1 : 0);
   const [quizAnswers, setQuizAnswers] = useState(existing?.quizAnswers || {});
@@ -47,8 +48,13 @@ export const UnderstandingMePage = ({ onNavigate }) => {
   const quizComplete = attachmentQuiz.every((q) => quizAnswers[q.id]);
 
   const runAI = async () => {
+    if (cardTriesLeft <= 0) {
+      setError("You've used your 2 AI card generations. You can still save your map below.");
+      return;
+    }
     setLoading(true);
     setError('');
+    spendAiUse('card'); // count the attempt up front, before the request
     const traumaLabels = trauma.map(
       (id) => traumaResponsePatterns.find((t) => t.id === id)?.label
     ).filter(Boolean);
@@ -318,12 +324,19 @@ export const UnderstandingMePage = ({ onNavigate }) => {
                   />
                 </div>
 
+                {isAIConfigured() && (
+                  <p className="text-[11px] text-center text-bae-navy/50">
+                    {cardTriesLeft > 0
+                      ? `✨ ${cardTriesLeft} AI card ${cardTriesLeft === 1 ? 'generation' : 'generations'} left — make your answers count.`
+                      : '✨ AI generations used up. You can still save your map below.'}
+                  </p>
+                )}
                 <div className="flex gap-2">
                   <Button variant="outline" className="flex-1" onClick={() => go(-1)}>Back</Button>
                   <Button
                     variant="primary"
                     className="flex-1"
-                    disabled={loading || !isAIConfigured() || !quizComplete}
+                    disabled={loading || !isAIConfigured() || !quizComplete || cardTriesLeft <= 0}
                     onClick={runAI}
                   >
                     {loading ? (
