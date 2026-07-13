@@ -79,6 +79,16 @@ function AppContent() {
     }
   }, [currentUser, demoMode, appReady, currentPage]);
 
+  // Signing IN routes off the auth screen. LoginPage only awaits Firebase; it's
+  // this effect that navigates once the user's data has loaded (so the gate
+  // reads a complete profile and sends returning users home, not to onboarding).
+  useEffect(() => {
+    if (currentUser && isLoaded && appReady && currentPage === 'auth') {
+      setCurrentPage(gatePage());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser, isLoaded, appReady, currentPage]);
+
   // The gate: home is only reachable once you've told us who you are.
   // Order matters — it's the clinical intake: name/mood -> how you love ->
   // your attachment patterns -> connect your partner. Each step's data guides

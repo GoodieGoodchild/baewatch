@@ -41,17 +41,19 @@ export const SplashScreen = ({ onComplete }) => {
       <FloatingHearts count={8} className="absolute inset-0 opacity-30" />
 
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-10 px-6 py-12">
-        <header className="w-full max-w-[90vw] text-center">
+        <header className="text-center">
           {logoError ? (
-            <div className="mx-auto mb-4 rounded-[24px] bg-bae-peach/90 px-6 py-4 text-4xl font-black uppercase tracking-[0.22em] text-bae-navy shadow-xl w-[80vw] max-w-[600px]">
+            <div className="mx-auto mb-2 rounded-2xl bg-bae-peach/90 px-5 py-3 text-2xl font-black uppercase tracking-[0.18em] text-bae-navy shadow-xl">
               Bae Watch
             </div>
           ) : (
-            <img
+            <motion.img
               src={logoSrc}
               alt="Bae Watch logo"
               onError={() => setLogoError(true)}
-              className="mx-auto mb-4 w-[80vw] max-w-[600px] object-contain"
+              animate={{ y: [0, -8, 0] }}
+              transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
+              className="mx-auto mb-2 w-32 sm:w-36 object-contain drop-shadow-xl"
             />
           )}
         </header>

@@ -117,7 +117,7 @@ export const UnderstandingMePage = ({ onNavigate }) => {
           </div>
         )}
 
-        <AnimatePresence mode="wait">
+        <>
           <motion.div
             key={step}
             initial={{ opacity: 0, x: 40 }}
@@ -420,7 +420,7 @@ export const UnderstandingMePage = ({ onNavigate }) => {
               </div>
             )}
           </motion.div>
-        </AnimatePresence>
+        </>
       </div>
     </motion.div>
   );

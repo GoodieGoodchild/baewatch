@@ -58,7 +58,7 @@ export const LoveLanguageQuizPage = ({ onNavigate }) => {
       animate={{ opacity: 1 }}
     >
       <div className="w-full max-w-md mx-auto">
-        <AnimatePresence mode="wait">
+        <>
           {phase === 'intro' && (
             <motion.div key="intro" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-5 text-center">
               <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 2.5 }} className="text-6xl">💞</motion.div>
@@ -142,7 +142,7 @@ export const LoveLanguageQuizPage = ({ onNavigate }) => {
               </Button>
             </motion.div>
           )}
-        </AnimatePresence>
+        </>
       </div>
     </motion.div>
   );

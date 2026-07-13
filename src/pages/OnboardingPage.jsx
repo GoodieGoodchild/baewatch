@@ -112,14 +112,16 @@ export const OnboardingPage = ({ onComplete }) => {
       </div>
 
       <div className="flex-1 flex flex-col justify-center px-6 py-6">
-        <AnimatePresence mode="wait" custom={direction}>
+        {/* Keyed re-mount (no AnimatePresence mode="wait"): several steps have
+            infinite child animations, which stall mode="wait" exit forever and
+            freeze the step on screen. A plain enter animation is robust. */}
+        <div className="overflow-hidden">
           <motion.div
             key={current.id}
             custom={direction}
             variants={variants}
             initial="enter"
             animate="center"
-            exit="exit"
             transition={{ duration: 0.28 }}
             className="w-full max-w-md mx-auto space-y-6"
           >
@@ -220,7 +222,7 @@ export const OnboardingPage = ({ onComplete }) => {
               </div>
             )}
           </motion.div>
-        </AnimatePresence>
+        </div>
       </div>
 
       <div className="px-6 pb-8 flex gap-3">
