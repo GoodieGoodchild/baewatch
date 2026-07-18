@@ -1,25 +1,9 @@
 {
+  "//": "Bae Watch hosts the app on Vercel — Firebase is used ONLY for Auth + Firestore + Storage. This file exists so `firebase deploy --only firestore:rules,storage` can publish the security rules. No Firebase Hosting, no Cloud Functions (the AI proxy runs on Vercel: api/ai.js).",
   "firestore": {
     "rules": "firestore.rules"
   },
   "storage": {
     "rules": "storage.rules"
-  },
-  "hosting": {
-    "public": "dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
-  },
-  "functions": {
-    "source": "functions"
   }
 }

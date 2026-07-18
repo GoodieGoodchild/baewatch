@@ -1,9 +1,11 @@
-# Security Setup — actions YOU must take
+# Security Setup — current state & how it fits together
 
-The repo now contains security rules and an AI proxy, but **none of it protects
-anything until deployed**. Do these in order (≈20 minutes total).
+Architecture today: **hosting + AI proxy on Vercel**, **Auth + database on
+Firebase**. Firebase is used only for Auth, Firestore and Storage — not for
+hosting or functions.
 
-## 1. Deploy the database & storage rules (do this FIRST — the DB is open until you do)
+## 1. Firestore & Storage security rules (Firebase)
+The database is only as safe as its published rules. Deploy them from the repo:
 
 ```bash
 npm install -g firebase-tools     # once
@@ -11,46 +13,38 @@ firebase login                    # once
 firebase deploy --only firestore:rules,storage
 ```
 
-Or paste the contents of `firestore.rules` / `storage.rules` into
+Or paste `firestore.rules` / `storage.rules` into
 Firebase Console → Firestore Database → Rules (and Storage → Rules) → Publish.
 
-## 2. Rotate the OpenAI key
+Rules enforce: users touch only their own data; a relationship doc is readable
+only by its two partners; invite codes can't be enumerated and expire after 48h.
 
-The current key has been used in local dev and should be treated as exposed.
-Create a fresh key at https://platform.openai.com/api-keys and **revoke the old
-one**. Set a monthly spending limit while you're there.
+## 2. OpenAI key — lives on Vercel, never in the browser  ✅ DONE
+The key is set as a **server-side** Vercel env var (`OPENAI_API_KEY`, no `VITE_`
+prefix) and used by the serverless proxy `api/ai.js`. The client calls `/api/ai`
+(set via `VITE_AI_PROXY_URL` in `.env.production`) and never sees the key.
 
-## 3. Deploy the AI proxy (before any public hosting)
+To rotate the key: Vercel → project **bae-watch** → Settings → Environment
+Variables → update `OPENAI_API_KEY` → redeploy. Set a monthly spend limit at
+platform.openai.com. **Never** put the key in a `VITE_` var or `.env.local` —
+those get bundled into the browser.
 
-Requires the Blaze (pay-as-you-go) plan for Cloud Functions:
-
-```bash
-cd functions && npm install && cd ..
-firebase functions:secrets:set OPENAI_API_KEY   # paste the FRESH key
-firebase deploy --only functions
-```
-
-Then in `.env.local`:
-```
-VITE_AI_PROXY_URL=https://aiproxy-<hash>-uc.a.run.app   # URL printed by deploy
-VITE_OPENAI_API_KEY=                                     # empty — key is server-side now
-```
-
-The proxy only accepts requests from signed-in Firebase users, whitelists
-models, and caps max_tokens — so nobody can spend on your key.
-
-## 4. Deploy hosting (when ready to go live)
-
+## 3. Deploy
 ```bash
 npm run build
-firebase deploy --only hosting
+cd dist && vercel deploy --prod --yes
 ```
+(`api/ai.js` and `dist/vercel.json` ship with the deploy; the SPA rewrite
+excludes `/api/`.)
 
 ## Notes
-
-- Until step 3, keeping `VITE_OPENAI_API_KEY` in `.env.local` is fine for
-  local/LAN testing — just don't publish a build made that way.
-- Invite codes now expire after 48h and can't be enumerated (the code is the
-  doc ID; listing is denied by rules).
-- If you later buy a custom domain, update the canonical/og URLs in
-  `index.html`, `public/robots.txt`, and `public/sitemap.xml`.
+- The Firebase **web config** (`AIzaSy…`, project id, etc.) is public by design —
+  it only identifies the project; the security rules are what protect the data.
+- Local dev uses the key from `.env.development.local` (gitignored, localhost
+  only), so `npm run build` never bundles it.
+- Custom domain later: update the canonical/OG URLs in `index.html`,
+  `public/robots.txt`, `public/sitemap.xml`, and add the domain to
+  `api/ai.js`'s `ALLOWED_HOSTS`.
+- Moving the whole backend to xneelo later: `server/xneelo/baewatch-ai.php` is
+  the equivalent AI proxy for a PHP host; the database move is a separate,
+  larger step (see chat).
